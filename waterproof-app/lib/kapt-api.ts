@@ -280,12 +280,17 @@ export async function fetchAllComplexes(
 }
 
 // ============================================================
-// API 2. 유지관리 이력 (특정 단지)
+// API 2. 유지관리 이력 (특정 단지) — V2 엔드포인트
+// 공동주택 유지관리 이력 정보제공 서비스 (ApHusMntMngHistInfoOfferServiceV2)
+// 메서드: getBuldExtrlMntncHistInfoSearchV2 (건물 외부 유지이력 — 방수/도장/외벽)
 // ============================================================
 export async function fetchMaintenanceHistory(
   kaptCode: string
 ): Promise<ApiResult<MaintenanceHistoryRaw[]>> {
-  const url = buildUrl('/AptMgmtSvc3/getAptMaintHist', { kaptCode });
+  const url = buildUrl(
+    '/ApHusMntMngHistInfoOfferServiceV2/getBuldExtrlMntncHistInfoSearchV2',
+    { kaptCode },
+  );
   const res = await fetchWithRetry<any>(url);
   if (!res.ok) return res;
 
@@ -298,27 +303,64 @@ export async function fetchMaintenanceHistory(
 }
 
 // ============================================================
-// API 3. 입찰공고 (특정 단지)
+// API 3. 입찰공고 (특정 단지) — 별도 API 신청 필요 (현재 미신청)
+// 신청 안 된 상태로 호출하면 빈 배열 반환하도록 안전 처리
 // ============================================================
 export async function fetchBidAnnouncements(
   kaptCode: string
 ): Promise<ApiResult<BidAnnouncementRaw[]>> {
-  const url = buildUrl('/AptBidInfoService/getAptBidInfo', { kaptCode });
-  const res = await fetchWithRetry<any>(url);
-  if (!res.ok) return res;
-  return { ok: true, data: extractItems<BidAnnouncementRaw>(res.data) };
+  // TODO: data.go.kr 에서 "공동주택 입찰공고" API 신청 후 정확한 엔드포인트로 교체
+  void kaptCode;
+  return { ok: true, data: [] };
 }
 
 // ============================================================
-// API 4. 장기수선충당금 잔액 (특정 단지, 최근 연월)
+// API 4. 장기수선충당금 잔액 (특정 단지) — V2 엔드포인트
+// 공동주택관리비(장기수선충당금) 정보제공 서비스 (AptRepairsCostServiceV2)
+// 메서드: getHsmpResrvFndBalanceInfoV2 (단지별 충당금잔액 정보조회)
 // ============================================================
 export async function fetchMaintenanceFund(
   kaptCode: string
 ): Promise<ApiResult<MaintenanceFundRaw[]>> {
-  const url = buildUrl('/AptMgmtSvc3/getAptLongMaintFund', { kaptCode });
+  // searchDate: 최근 12개월 중 최신값 — yyyymm 형식
+  const now = new Date();
+  // 데이터 반영 지연 대비 — 전월(전전월) 조회
+  const lookupDate = new Date(now.getFullYear(), now.getMonth() - 2, 1);
+  const yyyymm =
+    `${lookupDate.getFullYear()}${String(lookupDate.getMonth() + 1).padStart(2, '0')}`;
+
+  const url = buildUrl(
+    '/AptRepairsCostServiceV2/getHsmpResrvFndBalanceInfoV2',
+    { kaptCode, searchDate: yyyymm },
+  );
   const res = await fetchWithRetry<any>(url);
   if (!res.ok) return res;
   return { ok: true, data: extractItems<MaintenanceFundRaw>(res.data) };
+}
+
+// ============================================================
+// API 5. 단지 기본 정보 (특정 단지) — V4 엔드포인트
+// 공동주택 기본 정보제공 서비스 (AptBasisInfoServiceV4)
+// 준공연도, 세대수, 동수, 관리방식 등 — 우리 점수 계산의 핵심 입력
+// ============================================================
+export async function fetchComplexBasicInfo(
+  kaptCode: string
+): Promise<ApiResult<ComplexRaw>> {
+  // 표준 V4 메서드명 — 확인 필요 시 data.go.kr 명세 참고
+  const url = buildUrl('/AptBasisInfoServiceV4/getAphusBassInfoV4', {
+    kaptCode,
+  });
+  const res = await fetchWithRetry<any>(url);
+  if (!res.ok) return res;
+  const items = extractItems<ComplexRaw>(res.data);
+  if (items.length === 0) {
+    return {
+      ok: false,
+      error: `단지 기본정보 응답에서 item 없음 (kaptCode=${kaptCode})`,
+      retryable: false,
+    };
+  }
+  return { ok: true, data: items[0] };
 }
 
 // ============================================================
