@@ -31,6 +31,8 @@ import {
 import { createClient } from "@/lib/supabase/server";
 import { calcPredictionScore } from "@/lib/prediction";
 import { isWaterproofWork } from "@/lib/kapt-api";
+import { extractLastWorkByCategory } from "@/lib/work-categories";
+import { RecommendedWorkSpectrum } from "@/components/complexes/RecommendedWorkSpectrum";
 
 export const revalidate = 60;
 
@@ -333,6 +335,15 @@ export default async function ComplexDetailPage({
             </div>
           )}
         </section>
+
+        {/* ── 추천 공종 스펙트럼 (6대 공종) ─────────────── */}
+        <RecommendedWorkSpectrum
+          builtYear={c.built_year}
+          households={c.households}
+          lastWorkByCategory={extractLastWorkByCategory(
+            history.map((h) => ({ workType: h.work_type, workYear: h.work_year })),
+          )}
+        />
 
         {/* ── 단지 전경 placeholder (실제 이미지 없으면 그라데이션) ── */}
         <section className="group relative h-44 overflow-hidden rounded-2xl border border-slate-200 shadow-inner">

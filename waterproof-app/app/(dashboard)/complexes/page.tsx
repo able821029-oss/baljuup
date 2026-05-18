@@ -106,7 +106,7 @@ export default async function ComplexesPage({
         <EmptyResult />
       ) : (
         <>
-          {/* 데스크탑 테이블 */}
+          {/* 데스크탑 테이블 — 미세한 zebra + 점선 구분 + hover 강조 */}
           <div className="hidden overflow-x-auto rounded-xl border border-gray-200 bg-white md:block">
             <table className="w-full text-sm">
               <thead className="bg-gray-50 text-left text-xs uppercase tracking-wider text-gray-500">
@@ -118,24 +118,31 @@ export default async function ComplexesPage({
                   <th className="px-4 py-3 w-28">예측 점수</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100">
-                {rows.map((c) => (
-                  <ComplexRowDesktop key={c.id} c={c} />
+              <tbody>
+                {rows.map((c, i) => (
+                  <ComplexRowDesktop key={c.id} c={c} index={i} />
                 ))}
               </tbody>
             </table>
           </div>
 
-          {/* 모바일 카드 */}
+          {/* 모바일 카드 — 짝수/홀수 미세 배경 차이 + 좌측 점수 컬러바 (Card 내부) */}
           <div className="space-y-2 md:hidden">
-            {rows.map((c) => (
-              <PredictionScore
+            {rows.map((c, i) => (
+              <div
                 key={c.id}
-                score={c.prediction_score ?? 0}
-                complexName={c.name}
-                expectedYear={c.expected_order_year ?? new Date().getFullYear()}
-                compact
-              />
+                className={[
+                  'rounded-xl',
+                  i % 2 === 0 ? 'bg-white' : 'bg-slate-50/60',
+                ].join(' ')}
+              >
+                <PredictionScore
+                  score={c.prediction_score ?? 0}
+                  complexName={c.name}
+                  expectedYear={c.expected_order_year ?? new Date().getFullYear()}
+                  compact
+                />
+              </div>
             ))}
           </div>
 
@@ -158,13 +165,29 @@ export default async function ComplexesPage({
 import Link from 'next/link';
 import { PredictionScoreBadge } from '@/components/complexes/PredictionScore';
 
-function ComplexRowDesktop({ c }: { c: {
-  id: string; name: string; address: string | null; built_year: number | null;
-  households: number | null; prediction_score: number | null; expected_order_year: number | null;
-}}) {
+function ComplexRowDesktop({
+  c,
+  index,
+}: {
+  c: {
+    id: string; name: string; address: string | null; built_year: number | null;
+    households: number | null; prediction_score: number | null; expected_order_year: number | null;
+  };
+  index: number;
+}) {
+  // 미세 zebra (짝수행 살짝 어두움) + 점선 하단 보더 + hover 시 좌측 파란 라인
+  const zebra = index % 2 === 0 ? 'bg-white' : 'bg-slate-50/60';
   return (
-    <tr className="hover:bg-gray-50">
-      <td className="px-4 py-3">
+    <tr
+      className={[
+        'group border-b border-dashed border-slate-200/70 transition-colors',
+        zebra,
+        'hover:bg-blue-50/40',
+      ].join(' ')}
+    >
+      <td className="relative px-4 py-3">
+        {/* hover 시 좌측에 얇은 파란 라인 */}
+        <span className="pointer-events-none absolute inset-y-0 left-0 w-0.5 bg-transparent transition-colors group-hover:bg-accent" />
         <Link href={`/complexes/${c.id}`} className="block">
           <div className="font-semibold text-gray-900">{c.name}</div>
           <div className="mt-0.5 text-xs text-gray-500 truncate max-w-md">{c.address ?? '주소 정보 없음'}</div>
