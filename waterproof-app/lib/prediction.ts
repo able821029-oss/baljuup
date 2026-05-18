@@ -84,13 +84,25 @@ export function calcPredictionScore(input: PredictionInput): PredictionResult {
   const fund = input.fundBalance ?? 0;
   const bids = input.activeBids ?? 0;
 
-  // builtYear 가 없으면 점수 산정 불가 → 0점
-  if (!builtYear || !Number.isFinite(builtYear)) {
-    return zeroResult('준공연도 정보 없음', currentYear);
+  // 준공연도 + 마지막 방수공사 + 충당금 + 활성 입찰공고
+  // 모두 없으면 진짜로 산정 불가 → 0점
+  // 하나라도 있으면 가능한 만큼 점수 산출 (MVP — 추후 기본정보 API 추가로 보강)
+  const hasBuilt = !!builtYear && Number.isFinite(builtYear);
+  const hasWp = !!input.lastWaterproofYear && Number.isFinite(input.lastWaterproofYear);
+  const hasAnySignal = hasBuilt || hasWp || fund > 0 || bids > 0;
+  if (!hasAnySignal) {
+    return zeroResult('수집된 분석 데이터 없음', currentYear);
   }
 
-  const sinceBuilt = currentYear - builtYear;
-  const sinceLastWaterproof = currentYear - (lastWaterproof as number);
+  // builtYear 없으면 lastWaterproof 를 기준 시점으로 사용,
+  // 둘 다 없으면 현재 - 15년 으로 가정 (방수 사이클 = 15년)
+  const baseYear =
+    hasBuilt ? (builtYear as number)
+    : hasWp ? (input.lastWaterproofYear as number)
+    : currentYear - CYCLE_YEARS;
+
+  const sinceBuilt = currentYear - baseYear;
+  const sinceLastWaterproof = currentYear - ((lastWaterproof as number) ?? baseYear);
 
   // ── 1. 사이클 점수 (방수 후 경과 / 15년) — 0~100 ────────────
   const cycleScore = clamp((sinceLastWaterproof / CYCLE_YEARS) * 100, 0, 100);
@@ -113,7 +125,8 @@ export function calcPredictionScore(input: PredictionInput): PredictionResult {
   const tier = getTierFromScore(score);
   const palette = SCORE_TIERS[tier];
 
-  const expectedOrderYear = (lastWaterproof as number) + EXPECTED_GAP;
+  const lastWpEffective = (lastWaterproof as number | null | undefined) ?? baseYear;
+  const expectedOrderYear = lastWpEffective + EXPECTED_GAP;
   const yearsUntilExpected = expectedOrderYear - currentYear;
 
   return {
@@ -126,8 +139,8 @@ export function calcPredictionScore(input: PredictionInput): PredictionResult {
     reasons: buildReasons({
       sinceBuilt,
       sinceLastWaterproof,
-      lastWaterproof: lastWaterproof as number,
-      builtYear,
+      lastWaterproof: lastWpEffective,
+      builtYear: hasBuilt ? (builtYear as number) : baseYear,
       fund,
       bids,
       cycleScore,

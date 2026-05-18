@@ -18,6 +18,7 @@ import {
   Page,
   Text,
   View,
+  Image,
   StyleSheet,
   Font,
   pdf,
@@ -76,6 +77,16 @@ const styles = StyleSheet.create({
     borderBottomColor: COLORS.navy,
     paddingBottom: 8,
     marginBottom: 18,
+  },
+  headerBrand: {
+    flexDirection: 'column',
+    alignItems: 'flex-start',
+    gap: 4,
+  },
+  logo: {
+    width: 70,
+    height: 21,
+    objectFit: 'contain',
   },
   headerKicker: {
     fontSize: 9,
@@ -232,7 +243,11 @@ export function ProposalPDFDocument({
       <Page size="A4" style={styles.page}>
         {/* 헤더 */}
         <View style={styles.headerBar}>
-          <Text style={styles.headerKicker}>방수 공사 제안서</Text>
+          <View style={styles.headerBrand}>
+            {/* 로고 — react-pdf 는 SVG 의 글로우/필터 미지원이므로 PNG 사용 */}
+            <Image src="/logo.png" style={styles.logo} />
+            <Text style={styles.headerKicker}>방수 공사 제안서</Text>
+          </View>
           <View>
             <Text style={styles.headerMeta}>
               제출: <Text style={styles.headerMetaStrong}>{companyName}</Text> · {ownerName} 대표

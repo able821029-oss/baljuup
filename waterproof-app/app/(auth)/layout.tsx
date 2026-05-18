@@ -10,6 +10,7 @@
 
 import Link from "next/link";
 import { ArrowLeft, HelpCircle, BadgeCheck, ClipboardCheck } from "lucide-react";
+import { Logo } from "@/components/brand/Logo";
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -26,7 +27,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
 
       {/* 상단 헤더 */}
       <header className="fixed left-0 right-0 top-0 z-50 flex h-16 w-full items-center justify-between border-b border-slate-200 bg-white/80 px-4 backdrop-blur-md md:px-8">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           <Link
             href="/"
             className="rounded-full p-2 transition-all hover:bg-slate-100 active:scale-95"
@@ -34,7 +35,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
           >
             <ArrowLeft size={22} className="text-accent" />
           </Link>
-          <h1 className="text-xl font-bold tracking-tight text-accent">발주Up</h1>
+          <Logo size="sm" href="/" priority />
         </div>
         <a
           href="mailto:support@baljuup.co.kr?subject=발주Up 문의"

@@ -145,7 +145,7 @@ export async function POST(req: NextRequest) {
     let bidSent = 0;
     let bidFailed = 0;
 
-    const baseUrl = process.env.NEXT_PUBLIC_URL ?? 'https://yarodar.app';
+    const baseUrl = process.env.NEXT_PUBLIC_URL ?? 'https://baljuup.vercel.app';
 
     for (const user of users) {
       if (!user.phone) continue;

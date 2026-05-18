@@ -28,6 +28,7 @@ import {
   fetchAllComplexes,
   fetchMaintenanceHistory,
   fetchMaintenanceFund,
+  fetchComplexBasicInfo,
   normalizeComplex,
   SIDO_CODES,
   isWaterproofWork,
@@ -194,6 +195,14 @@ async function enrichAndScore(
 ): Promise<number> {
   let processed = 0;
   let updated = 0;
+  // 디버그 통계 — 첫 실행에서 API 별 성공률 확인
+  const stats = {
+    basicOk: 0, basicFail: 0,
+    histOk: 0, histFail: 0, histHasItems: 0,
+    fundOk: 0, fundFail: 0, fundHasItems: 0,
+    wpFound: 0, fundFound: 0, builtFound: 0,
+  };
+  const sampleErrors: string[] = [];
 
   // 동시 요청 수 제한
   const queue = complexes.slice();
@@ -204,10 +213,33 @@ async function enrichAndScore(
       const kaptCode = String(c.kaptCode);
 
       try {
-        const [histRes, fundRes] = await Promise.all([
+        const [histRes, fundRes, basicRes] = await Promise.all([
           fetchMaintenanceHistory(kaptCode),
           fetchMaintenanceFund(kaptCode),
+          fetchComplexBasicInfo(kaptCode),
         ]);
+
+        // 통계 누적
+        if (histRes.ok) {
+          stats.histOk++;
+          if (histRes.data.length > 0) stats.histHasItems++;
+        } else {
+          stats.histFail++;
+          if (sampleErrors.length < 3) sampleErrors.push(`hist: ${histRes.error}`);
+        }
+        if (fundRes.ok) {
+          stats.fundOk++;
+          if (fundRes.data.length > 0) stats.fundHasItems++;
+        } else {
+          stats.fundFail++;
+          if (sampleErrors.length < 6) sampleErrors.push(`fund: ${fundRes.error}`);
+        }
+        if (basicRes.ok) {
+          stats.basicOk++;
+        } else {
+          stats.basicFail++;
+          if (sampleErrors.length < 9) sampleErrors.push(`basic: ${basicRes.error}`);
+        }
 
         // 마지막 방수 공사 연도
         let lastWaterproofYear: number | null = null;
@@ -220,6 +252,7 @@ async function enrichAndScore(
             }
           }
         }
+        if (lastWaterproofYear != null) stats.wpFound++;
 
         // 최신 충당금 잔액
         let fundBalance: number | null = null;
@@ -230,8 +263,15 @@ async function enrichAndScore(
           const raw = Number(sorted[0].fundBalance);
           if (Number.isFinite(raw)) fundBalance = raw;
         }
+        if (fundBalance != null) stats.fundFound++;
 
-        const builtYear = normalizeComplex(c).built_year;
+        // 준공연도 — 1) 목록 응답에 있으면 사용, 2) 기본정보 API 응답에서 추출
+        let builtYear: number | null = normalizeComplex(c).built_year;
+        if (!builtYear && basicRes.ok) {
+          builtYear = normalizeComplex(basicRes.data).built_year;
+        }
+        if (builtYear != null) stats.builtFound++;
+
         const pred = calcPredictionScore({
           builtYear,
           lastWaterproofYear,
@@ -239,18 +279,30 @@ async function enrichAndScore(
         });
 
         if (supabase) {
+          const update: Record<string, unknown> = {
+            prediction_score: pred.score,
+            expected_order_year: pred.expectedOrderYear,
+            last_updated: new Date().toISOString(),
+          };
+          if (builtYear != null) update.built_year = builtYear;
+          // 기본정보 API 응답에서 세대수/동수 가 있다면 같이 갱신
+          if (basicRes.ok) {
+            const norm = normalizeComplex(basicRes.data);
+            if (norm.households != null) update.households = norm.households;
+            if (norm.buildings != null) update.buildings = norm.buildings;
+            if (norm.phone) update.phone = norm.phone;
+            if (norm.management_type) update.management_type = norm.management_type;
+          }
+
           const { error } = await supabase
             .from('complexes')
-            .update({
-              prediction_score: pred.score,
-              expected_order_year: pred.expectedOrderYear,
-              last_updated: new Date().toISOString(),
-            })
+            .update(update)
             .eq('kapt_code', kaptCode);
           if (!error) updated++;
         }
       } catch (err: any) {
         // 단지별 실패는 무시하고 다음으로
+        if (sampleErrors.length < 12) sampleErrors.push(`catch: ${String(err?.message || err)}`);
       } finally {
         processed++;
         if (processed % 10 === 0) {
@@ -264,6 +316,18 @@ async function enrichAndScore(
 
   await Promise.all(workers);
   process.stdout.write('\n');
+
+  // 디버그 통계 출력
+  console.log('\n  [보강 API 통계]');
+  console.log(`    basic    — OK ${stats.basicOk} / FAIL ${stats.basicFail}`);
+  console.log(`    hist     — OK ${stats.histOk} / FAIL ${stats.histFail} / HAS_ITEMS ${stats.histHasItems}`);
+  console.log(`    fund     — OK ${stats.fundOk} / FAIL ${stats.fundFail} / HAS_ITEMS ${stats.fundHasItems}`);
+  console.log(`    추출 결과 — builtYear ${stats.builtFound} / lastWaterproof ${stats.wpFound} / fundBalance ${stats.fundFound}`);
+  if (sampleErrors.length) {
+    console.log('  [샘플 에러 (최대 12건)]');
+    for (const e of sampleErrors) console.log(`    - ${e}`);
+  }
+
   return updated;
 }
 
