@@ -75,17 +75,31 @@ export function DashboardShell({ user, children }: DashboardShellProps) {
         />
       )}
 
-      {/* ─── 데스크탑 사이드바 (md+) + 모바일 드로어 ───── */}
+      {/* ─── 데스크탑 사이드바 (md+) + 모바일 드로어 ─────
+           - 베이스: 다크 네이비
+           - 추가: 위→아래 미세 그라데이션
+           - 추가: "UP" 워터마크 반복 패턴 (브랜드 시그니처)
+           - 추가: 우측에 액센트 라인 그라데이션
+       */}
       <aside
         className={[
-          "fixed inset-y-0 left-0 z-40 flex w-64 flex-col bg-primary text-white transition-transform duration-200",
+          "fixed inset-y-0 left-0 z-40 flex w-64 flex-col text-white transition-transform duration-200",
+          "bg-gradient-to-b from-slate-900 via-primary to-slate-900",
+          // UP 워터마크 반복 (4% 투명도 — 매우 은은)
+          "before:pointer-events-none before:absolute before:inset-0 before:bg-[url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='140' height='140' viewBox='0 0 140 140'><text x='70' y='90' font-family='Hanken Grotesk,sans-serif' font-size='52' font-weight='800' fill='%23ffffff' fill-opacity='0.04' text-anchor='middle'>UP</text></svg>\")] before:bg-repeat",
+          // 우측 액센트 라인
+          "after:pointer-events-none after:absolute after:inset-y-0 after:right-0 after:w-px after:bg-gradient-to-b after:from-transparent after:via-accent/40 after:to-transparent",
           "md:translate-x-0",
           sidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0",
         ].join(" ")}
       >
         <div className="flex h-20 items-center justify-between border-b border-white/10 px-6">
-          {/* 다크 사이드바 — 로고를 화이트화(brightness-0 invert)해 가독성 확보 */}
-          <Logo size="sm" inverted href="/dashboard" priority />
+          {/* 다크 사이드바 — 로고 SVG 가 글로우/그라데이션 기반이라 invert 시 흰 사각형이 되므로 텍스트로 표시.
+              브랜드 로고 이미지는 밝은 배경 영역(인증 페이지/모바일 헤더)에만 사용. */}
+          <Link href="/dashboard" className="flex items-center gap-1.5">
+            <span className="text-xl font-extrabold tracking-tight text-white">발주</span>
+            <span className="text-xl font-extrabold tracking-tight text-accent">Up</span>
+          </Link>
 
           <button
             type="button"
