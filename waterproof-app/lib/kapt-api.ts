@@ -17,9 +17,10 @@
  */
 
 const API_KEY = process.env.DATA_GO_KR_KEY!;
-// data.go.kr 의 K-apt 서비스는 HTTPS 게이트웨이에서 일부 엔드포인트가 500 을 반환하는 사례가 있어
-// HTTP 로 강제. 환경변수 KAPT_BASE_URL 로 오버라이드 가능.
-const BASE_URL = process.env.KAPT_BASE_URL || 'http://apis.data.go.kr/1613000';
+// 공공데이터포털 "국토교통부_공동주택 단지 목록제공 서비스" 의 공식 엔드포인트
+// 서비스명: AptListService3 (V3) — V2 와 V3 둘 다 존재했으나 현재 V3 만 활성
+// HTTPS 만 지원 (HTTP 는 500 반환)
+const BASE_URL = process.env.KAPT_BASE_URL || 'https://apis.data.go.kr/1613000';
 
 if (!API_KEY) {
   // 실행 시에만 에러 발생 — 빌드 단계에서 환경변수가 없는 경우를 허용
@@ -214,11 +215,11 @@ export async function fetchComplexList(
   page = 1,
   numOfRows = 999  // K-apt API 최대 999
 ): Promise<ApiResult<ComplexRaw[]>> {
-  // 국토교통부_공동주택 단지 목록제공 서비스 (data.go.kr API 코드 1613000)
-  // 정확한 엔드포인트: /AptListService2/getSidoAptList
-  // 잘못 적힌 /getAptList 는 404 가 아니라 빈 응답을 반환하기 때문에
-  // 워크플로우가 "성공"으로 끝나면서 0건이 적재되는 함정에 빠짐.
-  const url = buildUrl('/AptListService2/getSidoAptList', {
+  // 국토교통부_공동주택 단지 목록제공 서비스 (data.go.kr 데이터 ID 15057332)
+  // 공식 엔드포인트: /AptListService3/getSidoAptList3
+  //   - 서비스 V2 는 폐기, V3 만 사용 가능
+  //   - 메서드명 끝에 숫자 "3" 필수 (getSidoAptList ≠ getSidoAptList3)
+  const url = buildUrl('/AptListService3/getSidoAptList3', {
     sidoCode,
     pageNo: page,
     numOfRows,
