@@ -24,6 +24,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { signOut } from "@/app/(auth)/login/actions";
+import { Logo } from "@/components/brand/Logo";
 
 interface NavItem {
   href: string;
@@ -83,9 +84,9 @@ export function DashboardShell({ user, children }: DashboardShellProps) {
         ].join(" ")}
       >
         <div className="flex h-20 items-center justify-between border-b border-white/10 px-6">
-          <Link href="/dashboard" className="flex items-center gap-2">
-            <span className="text-xl font-extrabold tracking-tight">발주Up</span>
-          </Link>
+          {/* 다크 사이드바 — 로고를 화이트화(brightness-0 invert)해 가독성 확보 */}
+          <Logo size="sm" inverted href="/dashboard" priority />
+
           <button
             type="button"
             onClick={() => setSidebarOpen(false)}
@@ -153,7 +154,8 @@ export function DashboardShell({ user, children }: DashboardShellProps) {
           >
             <Menu size={22} className="text-on-surface-var" />
           </button>
-          <h1 className="text-lg font-extrabold tracking-tight text-primary">발주Up</h1>
+          {/* 모바일 상단 — 글래스 헤더(밝은 배경) → 원본 색상 로고 */}
+          <Logo size="sm" href="/dashboard" priority />
           <div className="flex items-center gap-2">
             <button
               type="button"
