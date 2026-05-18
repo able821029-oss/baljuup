@@ -11,13 +11,24 @@
 
 "use client";
 
+import { Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useFormState, useFormStatus } from "react-dom";
 import { AlertCircle, Loader2, Mail, Lock } from "lucide-react";
 import { login, type LoginState } from "./actions";
 
+// useSearchParams() 는 Suspense 경계 안에서 호출되어야 정적 prerender 회피 가능.
+// 페이지 자체를 Suspense 로 감싸서 빌드 통과 보장.
 export default function LoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <LoginPageInner />
+    </Suspense>
+  );
+}
+
+function LoginPageInner() {
   const params = useSearchParams();
   const redirectTo = params.get("redirect") ?? "/dashboard";
   const [state, formAction] = useFormState<LoginState, FormData>(login, null);

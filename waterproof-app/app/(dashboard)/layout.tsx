@@ -12,6 +12,10 @@ import { createClient } from '@/lib/supabase/server';
 import { DashboardShell } from '@/components/dashboard/DashboardShell';
 import type { UserProfile } from '@/lib/supabase/database.types';
 
+// 모든 대시보드 페이지는 인증 / 쿠키 / URL 쿼리에 의존하므로 정적 prerender 불필요.
+// (자식 컴포넌트의 useSearchParams 가 prerender 단계에서 충돌하는 문제도 함께 회피)
+export const dynamic = 'force-dynamic';
+
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();
 
