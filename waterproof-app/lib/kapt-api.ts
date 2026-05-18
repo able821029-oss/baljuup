@@ -17,7 +17,9 @@
  */
 
 const API_KEY = process.env.DATA_GO_KR_KEY!;
-const BASE_URL = 'https://apis.data.go.kr/1613000';
+// data.go.kr 의 K-apt 서비스는 HTTPS 게이트웨이에서 일부 엔드포인트가 500 을 반환하는 사례가 있어
+// HTTP 로 강제. 환경변수 KAPT_BASE_URL 로 오버라이드 가능.
+const BASE_URL = process.env.KAPT_BASE_URL || 'http://apis.data.go.kr/1613000';
 
 if (!API_KEY) {
   // 실행 시에만 에러 발생 — 빌드 단계에서 환경변수가 없는 경우를 허용
@@ -129,11 +131,19 @@ async function fetchWithRetry<T>(
 
     if (!res.ok) {
       const retryable = res.status >= 500 || res.status === 429;
+      // 디버깅: 응답 본문 일부 + 호출한 URL(키 마스킹) 도 같이 반환
+      const body = await res.text().catch(() => '');
+      const maskedUrl = url.replace(/serviceKey=[^&]+/, 'serviceKey=***');
+      const detail = body ? ` body=${body.slice(0, 200).replace(/\s+/g, ' ')}` : '';
       if (retryable && attempt < MAX_RETRIES) {
         await sleep(RETRY_BASE_DELAY_MS * attempt);
         return fetchWithRetry<T>(url, attempt + 1);
       }
-      return { ok: false, error: `HTTP ${res.status}`, retryable };
+      return {
+        ok: false,
+        error: `HTTP ${res.status} url=${maskedUrl}${detail}`,
+        retryable,
+      };
     }
 
     const text = await res.text();
@@ -202,7 +212,7 @@ function extractItems<T>(data: any): T[] {
 export async function fetchComplexList(
   sidoCode: string,
   page = 1,
-  numOfRows = 1000
+  numOfRows = 999  // K-apt API 최대 999
 ): Promise<ApiResult<ComplexRaw[]>> {
   // 국토교통부_공동주택 단지 목록제공 서비스 (data.go.kr API 코드 1613000)
   // 정확한 엔드포인트: /AptListService2/getSidoAptList
