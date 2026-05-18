@@ -26,13 +26,13 @@ import {
   BarChart3,
   CalendarCheck,
   Sparkles,
-  Image as ImageIcon,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { calcPredictionScore } from "@/lib/prediction";
 import { isWaterproofWork } from "@/lib/kapt-api";
 import { extractLastWorkByCategory } from "@/lib/work-categories";
 import { RecommendedWorkSpectrum } from "@/components/complexes/RecommendedWorkSpectrum";
+import { ComplexSatelliteView } from "@/components/complexes/ComplexSatelliteView";
 
 export const revalidate = 60;
 
@@ -355,40 +355,8 @@ export default async function ComplexDetailPage({
           )}
         />
 
-        {/* ── 단지 전경 + 지도 외부 링크 — 실제 사진 없을 때 네이버/카카오 지도로 빠르게 ── */}
-        <section className="group relative h-44 overflow-hidden rounded-2xl border border-slate-200 shadow-inner">
-          <div className="absolute inset-0 bg-gradient-to-br from-slate-700 via-slate-800 to-slate-900" />
-          {/* 점선 패턴 — '현장 위성사진 자리' 표시 */}
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_1px_1px,rgba(255,255,255,0.08)_1px,transparent_0)] [background-size:18px_18px]" />
-          <div className="absolute inset-0 flex flex-col justify-between bg-gradient-to-t from-black/80 via-black/30 to-transparent p-4">
-            <div className="flex items-center gap-2">
-              <ImageIcon size={16} className="text-white/80" />
-              <p className="text-[11px] font-bold uppercase tracking-wide text-white/80">
-                단지 전경 / 위성 사진
-              </p>
-            </div>
-            <div className="flex flex-wrap items-center justify-end gap-2">
-              <a
-                href={`https://map.naver.com/p/search/${encodeURIComponent(c.name + ' ' + (c.address ?? ''))}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 rounded-lg bg-white/95 px-3 py-2 text-xs font-bold text-on-surface shadow-md transition-all hover:bg-white active:scale-95"
-              >
-                <MapPin size={14} className="text-emerald-600" />
-                네이버 지도
-              </a>
-              <a
-                href={`https://map.kakao.com/?q=${encodeURIComponent(c.name + ' ' + (c.address ?? ''))}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 rounded-lg bg-white/95 px-3 py-2 text-xs font-bold text-on-surface shadow-md transition-all hover:bg-white active:scale-95"
-              >
-                <MapPin size={14} className="text-amber-500" />
-                카카오맵
-              </a>
-            </div>
-          </div>
-        </section>
+        {/* ── 단지 전경 / 위성 사진 — 카카오맵 SKYVIEW (키 없으면 placeholder) ── */}
+        <ComplexSatelliteView name={c.name} address={c.address} />
       </main>
 
       {/* ── 고정 하단 CTA + 모바일 nav 자리 ──────────── */}
