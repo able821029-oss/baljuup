@@ -204,7 +204,11 @@ export async function fetchComplexList(
   page = 1,
   numOfRows = 1000
 ): Promise<ApiResult<ComplexRaw[]>> {
-  const url = buildUrl('/AptListService2/getAptList', {
+  // 국토교통부_공동주택 단지 목록제공 서비스 (data.go.kr API 코드 1613000)
+  // 정확한 엔드포인트: /AptListService2/getSidoAptList
+  // 잘못 적힌 /getAptList 는 404 가 아니라 빈 응답을 반환하기 때문에
+  // 워크플로우가 "성공"으로 끝나면서 0건이 적재되는 함정에 빠짐.
+  const url = buildUrl('/AptListService2/getSidoAptList', {
     sidoCode,
     pageNo: page,
     numOfRows,
