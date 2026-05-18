@@ -340,16 +340,26 @@ export function normalizeComplex(raw: ComplexRaw): {
   const useDate = String(raw.kaptUsedate ?? '');
   const builtYear = useDate.length >= 4 ? parseInt(useDate.slice(0, 4), 10) : null;
 
-  // 시도/시군구 분리 (주소 첫 2단계)
-  const addr = String(raw.kaptAddr ?? raw.doroJuso ?? '').trim();
-  const parts = addr.split(/\s+/);
-  const sido = parts[0] || null;
-  const sigungu = parts[1] || null;
+  // V3 API 시도별/시군구별 목록은 as1~as4 (시도/시군구/읍면동/리) 를 분리해서 제공.
+  // V2 의 kaptAddr/doroJuso 도 호환 유지 (다른 API 응답용)
+  const as1 = raw.as1 ? String(raw.as1).trim() : null;  // 시도
+  const as2 = raw.as2 ? String(raw.as2).trim() : null;  // 시군구
+  const as3 = raw.as3 ? String(raw.as3).trim() : null;  // 읍면동
+  const as4 = raw.as4 ? String(raw.as4).trim() : null;  // 리
+
+  const explicitAddr = String(raw.kaptAddr ?? raw.doroJuso ?? '').trim();
+  const composedAddr = [as1, as2, as3, as4].filter(Boolean).join(' ').trim();
+  const addr = explicitAddr || composedAddr || null;
+
+  // sido / sigungu — V3 에서 as1/as2 우선, 없으면 주소 첫 2단계로 폴백
+  const parts = addr ? addr.split(/\s+/) : [];
+  const sido = as1 || parts[0] || null;
+  const sigungu = as2 || parts[1] || null;
 
   return {
     kapt_code: String(raw.kaptCode),
     name: String(raw.kaptName ?? '').trim(),
-    address: addr || null,
+    address: addr,
     sido,
     sigungu,
     built_year: Number.isFinite(builtYear as number) ? (builtYear as number) : null,
