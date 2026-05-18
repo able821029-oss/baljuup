@@ -13,13 +13,33 @@ import {
   Zap,
   BarChart3,
   ArrowRight,
+  Sparkles,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { Logo } from "@/components/brand/Logo";
 
 export const revalidate = 60;
 
 export default async function DashboardPage() {
   const supabase = await createClient();
+
+  // ── 사용자 + 프로필 조회 (히어로 액션 분기용) ────────────
+  const { data: { user } } = await supabase.auth.getUser();
+  const profileResp = user
+    ? await supabase
+        .from("user_profiles")
+        .select("company_name, plan, region")
+        .eq("id", user.id)
+        .maybeSingle()
+    : { data: null };
+  const profile = (profileResp.data as unknown) as {
+    company_name: string | null;
+    plan: string;
+    region: string[] | null;
+  } | null;
+  const isTrialUser = profile?.plan === "trial";
+  const hasRegions = (profile?.region?.length ?? 0) > 0;
+  const companyName = profile?.company_name ?? null;
 
   // ── 병렬 조회 (기존 그대로) ─────────────────────────────
   const [
@@ -59,6 +79,14 @@ export default async function DashboardPage() {
 
   return (
     <div className="mx-auto w-full max-w-3xl px-5 pt-6 pb-6 space-y-8 lg:max-w-5xl">
+      {/* ── 0. 히어로 액션 (체험 사용자 전용 — 첫 로그인 환영 + 다음 행동 유도) ── */}
+      {isTrialUser && (
+        <HeroAction
+          companyName={companyName}
+          hasRegions={hasRegions}
+        />
+      )}
+
       {/* ── 1. 지표 카드 4종 (2x2 모바일 / 4열 데스크탑) ──────── */}
       <section className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <MetricCard variant="glass"  label="모니터링 단지" value={total} unit="개소" />
@@ -189,6 +217,76 @@ export default async function DashboardPage() {
         <TrendChart />
       </section>
     </div>
+  );
+}
+
+// ============================================================
+// 히어로 액션 — 체험 사용자 첫 로그인 환영 + 다음 행동 유도
+// ============================================================
+function HeroAction({
+  companyName,
+  hasRegions,
+}: {
+  companyName: string | null;
+  hasRegions: boolean;
+}) {
+  // 관심 지역 설정 전: 셋업이 1순위 / 설정 후: 즉시 접촉 단지로 안내
+  const primaryHref = hasRegions ? "/complexes?tier=critical" : "/settings";
+  const primaryLabel = hasRegions ? "즉시 접촉 단지 보기" : "관심 지역 설정하기";
+  const secondaryHref = hasRegions ? "/proposals/new" : "/complexes";
+  const secondaryLabel = hasRegions ? "제안서 만들기" : "단지 둘러보기";
+  const subtitle = hasRegions
+    ? "관심 지역의 단지 분석이 진행 중입니다. 점수 80점 이상 단지부터 살펴보세요."
+    : "관심 지역만 설정하면 매주 발주가 날 단지를 분석해드립니다.";
+
+  return (
+    <section className="premium-shadow relative overflow-hidden rounded-3xl border border-blue-100/60 bg-gradient-to-br from-white via-blue-50/30 to-white p-6 sm:p-8">
+      {/* 우상단 미세 광선 */}
+      <div
+        className="pointer-events-none absolute -right-12 -top-12 size-56 rounded-full bg-accent/10 blur-3xl"
+        aria-hidden="true"
+      />
+
+      <div className="relative flex flex-col gap-6 sm:flex-row sm:items-center">
+        {/* 로고 (밝은 배경 — 원본 색상 그대로) */}
+        <div className="flex shrink-0 items-center justify-center sm:justify-start">
+          <Logo size="lg" priority />
+        </div>
+
+        <div className="min-w-0 flex-1 text-center sm:text-left">
+          {/* 체험 배지 */}
+          <div className="inline-flex items-center gap-1 rounded-full bg-accent/10 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-accent">
+            <Sparkles size={11} />
+            7일 무료 체험 중
+          </div>
+
+          {/* 인사 + 설명 */}
+          <h2 className="mt-2 text-xl font-extrabold tracking-tight text-on-surface sm:text-2xl">
+            {companyName ? `${companyName} 대표님, 환영합니다` : "발주Up에 오신 것을 환영합니다"}
+          </h2>
+          <p className="mt-1.5 text-sm leading-relaxed text-on-surface-var">
+            {subtitle}
+          </p>
+
+          {/* CTA 2개 */}
+          <div className="mt-4 flex flex-wrap justify-center gap-2 sm:justify-start">
+            <Link
+              href={primaryHref}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-accent px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-accent/20 transition-all hover:bg-accent/90 active:scale-[0.98]"
+            >
+              {primaryLabel}
+              <ArrowRight size={14} />
+            </Link>
+            <Link
+              href={secondaryHref}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-on-surface transition-all hover:bg-slate-50 active:scale-[0.98]"
+            >
+              {secondaryLabel}
+            </Link>
+          </div>
+        </div>
+      </div>
+    </section>
   );
 }
 
