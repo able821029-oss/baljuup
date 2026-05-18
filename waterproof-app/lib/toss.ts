@@ -8,7 +8,8 @@
  * 시크릿 키 인증: HTTP Basic (Base64("{TOSS_SECRET_KEY}:") )
  */
 
-import { Buffer } from 'node:buffer';
+// Buffer는 Node.js 글로벌이므로 별도 import 불필요.
+// (`node:buffer` 명시적 import는 webpack 클라이언트 번들에서 UnhandledSchemeError 발생)
 
 const TOSS_BASE = 'https://api.tosspayments.com';
 const SECRET = process.env.TOSS_SECRET_KEY;
