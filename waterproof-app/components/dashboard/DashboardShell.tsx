@@ -93,7 +93,7 @@ export function DashboardShell({ user, children }: DashboardShellProps) {
           sidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0",
         ].join(" ")}
       >
-        <div className="flex h-20 items-center justify-between border-b border-white/10 px-6">
+        <div className="relative z-10 flex h-20 items-center justify-between border-b border-white/10 px-6">
           {/* 다크 사이드바 — 로고 SVG 가 글로우/그라데이션 기반이라 invert 시 흰 사각형이 되므로 텍스트로 표시.
               브랜드 로고 이미지는 밝은 배경 영역(인증 페이지/모바일 헤더)에만 사용. */}
           <Link href="/dashboard" className="flex items-center gap-1.5">
@@ -111,7 +111,7 @@ export function DashboardShell({ user, children }: DashboardShellProps) {
           </button>
         </div>
 
-        <nav className="flex-1 space-y-1 px-3 py-4">
+        <nav className="relative z-10 flex-1 space-y-1 px-3 py-4">
           {NAV_ITEMS.map((item) => {
             const active = pathname === item.href || pathname.startsWith(item.href + "/");
             const Icon = item.icon;
@@ -134,7 +134,7 @@ export function DashboardShell({ user, children }: DashboardShellProps) {
           })}
         </nav>
 
-        <div className="border-t border-white/10 px-3 py-3">
+        <div className="relative z-10 border-t border-white/10 px-3 py-3">
           <div className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm">
             <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-accent text-[11px] font-bold shadow-lg shadow-accent/20">
               {initial}

@@ -177,6 +177,39 @@ function ComplexRowDesktop({
 }) {
   // 미세 zebra (짝수행 살짝 어두움) + 점선 하단 보더 + hover 시 좌측 파란 라인
   const zebra = index % 2 === 0 ? 'bg-white' : 'bg-slate-50/60';
+  const currentYear = new Date().getFullYear();
+  const ageYears = c.built_year ? currentYear - c.built_year : null;
+  const yearsUntilOrder =
+    c.expected_order_year != null ? c.expected_order_year - currentYear : null;
+
+  // 영업 우선순위 라벨 (왼쪽 여백 채움용)
+  const urgencyChip = (() => {
+    if (yearsUntilOrder == null) return null;
+    if (yearsUntilOrder <= 0)
+      return { label: '발주 도래', cls: 'bg-red-50 text-red-700 ring-1 ring-red-200' };
+    if (yearsUntilOrder <= 2)
+      return { label: `${yearsUntilOrder}년 내`, cls: 'bg-orange-50 text-orange-700 ring-1 ring-orange-200' };
+    if (yearsUntilOrder <= 5)
+      return { label: '예정', cls: 'bg-amber-50 text-amber-700 ring-1 ring-amber-200' };
+    return null;
+  })();
+
+  // 노후도 칩
+  const ageChip =
+    ageYears != null && ageYears >= 30
+      ? { label: '노후 30년+', cls: 'bg-rose-50 text-rose-700 ring-1 ring-rose-200' }
+      : ageYears != null && ageYears >= 20
+      ? { label: '노후 20년+', cls: 'bg-slate-100 text-slate-700 ring-1 ring-slate-200' }
+      : null;
+
+  // 대단지 칩
+  const sizeChip =
+    c.households != null && c.households >= 1000
+      ? { label: '대단지', cls: 'bg-indigo-50 text-indigo-700 ring-1 ring-indigo-200' }
+      : null;
+
+  const chips = [urgencyChip, ageChip, sizeChip].filter(Boolean) as { label: string; cls: string }[];
+
   return (
     <tr
       className={[
@@ -190,11 +223,31 @@ function ComplexRowDesktop({
         <span className="pointer-events-none absolute inset-y-0 left-0 w-0.5 bg-transparent transition-colors group-hover:bg-accent" />
         <Link href={`/complexes/${c.id}`} className="block">
           <div className="font-semibold text-gray-900">{c.name}</div>
-          <div className="mt-0.5 text-xs text-gray-500 truncate max-w-md">{c.address ?? '주소 정보 없음'}</div>
+          <div className="mt-0.5 truncate max-w-md text-xs text-gray-500">
+            {c.address ?? '주소 정보 없음'}
+          </div>
+          {chips.length > 0 && (
+            <div className="mt-1.5 flex flex-wrap items-center gap-1">
+              {chips.map((chip, i) => (
+                <span
+                  key={i}
+                  className={[
+                    'rounded-md px-1.5 py-0.5 text-[10px] font-bold',
+                    chip.cls,
+                  ].join(' ')}
+                >
+                  {chip.label}
+                </span>
+              ))}
+            </div>
+          )}
         </Link>
       </td>
       <td className="px-4 py-3 text-xs tabular-nums text-gray-700">
         {c.built_year ?? '—'}
+        {ageYears != null && (
+          <span className="ml-1 text-[10px] text-gray-400">({ageYears}년)</span>
+        )}
       </td>
       <td className="px-4 py-3 text-xs tabular-nums text-gray-700">
         {c.households ? c.households.toLocaleString() : '—'}

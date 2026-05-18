@@ -283,9 +283,19 @@ export default async function ComplexDetailPage({
         <section className="space-y-4">
           <h3 className="px-1 text-base font-bold">공사 이력 (히스토리)</h3>
           {history.length === 0 ? (
-            <p className="rounded-2xl border border-slate-200 bg-white px-5 py-8 text-center text-xs text-slate-400">
-              유지관리 이력 데이터 없음
-            </p>
+            <div className="rounded-2xl border border-dashed border-slate-200 bg-white p-6 text-center">
+              <div className="mx-auto mb-3 flex size-12 items-center justify-center rounded-full bg-slate-50">
+                <CalendarCheck size={22} className="text-slate-400" />
+              </div>
+              <p className="text-sm font-bold text-on-surface">유지관리 이력 데이터 없음</p>
+              <p className="mt-1.5 text-xs leading-relaxed text-on-surface-var">
+                공공데이터에서 이 단지의 공사 이력을 아직 받지 못했습니다.<br />
+                준공 후 첫 공사 시점이 아직 안 됐거나, 단지가 등록 직후일 수 있어요.
+              </p>
+              <p className="mt-3 text-[11px] font-medium text-accent">
+                → 아래 <strong>추천 공종 스펙트럼</strong>에서 노후도 기준 자동 추천을 확인하세요.
+              </p>
+            </div>
           ) : (
             <div className="relative space-y-6 pl-6 before:absolute before:bottom-2 before:left-[11px] before:top-2 before:w-0.5 before:bg-slate-200">
               {history.slice(0, 6).map((h) => {
@@ -345,13 +355,37 @@ export default async function ComplexDetailPage({
           )}
         />
 
-        {/* ── 단지 전경 placeholder (실제 이미지 없으면 그라데이션) ── */}
+        {/* ── 단지 전경 + 지도 외부 링크 — 실제 사진 없을 때 네이버/카카오 지도로 빠르게 ── */}
         <section className="group relative h-44 overflow-hidden rounded-2xl border border-slate-200 shadow-inner">
           <div className="absolute inset-0 bg-gradient-to-br from-slate-700 via-slate-800 to-slate-900" />
-          <div className="absolute inset-0 flex flex-col justify-end bg-gradient-to-t from-black/80 via-black/20 to-transparent p-4">
+          {/* 점선 패턴 — '현장 위성사진 자리' 표시 */}
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_1px_1px,rgba(255,255,255,0.08)_1px,transparent_0)] [background-size:18px_18px]" />
+          <div className="absolute inset-0 flex flex-col justify-between bg-gradient-to-t from-black/80 via-black/30 to-transparent p-4">
             <div className="flex items-center gap-2">
-              <ImageIcon size={18} className="text-white" />
-              <p className="text-xs font-bold text-white">단지 전경 및 현장 위성 사진</p>
+              <ImageIcon size={16} className="text-white/80" />
+              <p className="text-[11px] font-bold uppercase tracking-wide text-white/80">
+                단지 전경 / 위성 사진
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center justify-end gap-2">
+              <a
+                href={`https://map.naver.com/p/search/${encodeURIComponent(c.name + ' ' + (c.address ?? ''))}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 rounded-lg bg-white/95 px-3 py-2 text-xs font-bold text-on-surface shadow-md transition-all hover:bg-white active:scale-95"
+              >
+                <MapPin size={14} className="text-emerald-600" />
+                네이버 지도
+              </a>
+              <a
+                href={`https://map.kakao.com/?q=${encodeURIComponent(c.name + ' ' + (c.address ?? ''))}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 rounded-lg bg-white/95 px-3 py-2 text-xs font-bold text-on-surface shadow-md transition-all hover:bg-white active:scale-95"
+              >
+                <MapPin size={14} className="text-amber-500" />
+                카카오맵
+              </a>
             </div>
           </div>
         </section>
