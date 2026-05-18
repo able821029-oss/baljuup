@@ -240,7 +240,8 @@ export async function fetchAllComplexes(
     maxPages?: number;
   } = {}
 ): Promise<ApiResult<ComplexRaw[]>> {
-  const pageSize = opts.pageSize ?? 1000;
+  // K-apt API 최대 numOfRows = 999. 1000 이상 전달 시 API 가 HTTP 500 "Unexpected errors" 반환.
+  const pageSize = Math.min(opts.pageSize ?? 999, 999);
   const maxPages = opts.maxPages ?? 100;
   const all: ComplexRaw[] = [];
 
