@@ -1,0 +1,97 @@
+name: Monthly Billing
+
+# 매일 새벽 1시 KST = 16:00 UTC 전날 실행
+# 매일 한 번 돌아 next_billing_at 가 오늘 이하인 구독만 결제 (멱등)
+# 수동 실행도 가능 (특정 사용자 결제, dry-run 테스트)
+
+on:
+  schedule:
+    - cron: '0 16 * * *'
+  workflow_dispatch:
+    inputs:
+      user_id:
+        description: '특정 사용자만 결제 (UUID, 비우면 전체)'
+        required: false
+        default: ''
+      dry_run:
+        description: 'dry-run 모드 (결제 안함, 조회만)'
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  billing:
+    name: 월 정기결제 실행
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: waterproof-app
+
+    steps:
+      - name: 체크아웃
+        uses: actions/checkout@v4
+
+      - name: Node.js 20 설치
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: waterproof-app/package-lock.json
+
+      - name: 의존성 설치
+        run: npm ci --no-audit --no-fund
+
+      - name: 정기결제 실행
+        env:
+          TOSS_SECRET_KEY: ${{ secrets.TOSS_SECRET_KEY }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          ARGS=""
+          if [ -n "${{ github.event.inputs.user_id }}" ]; then
+            ARGS="$ARGS --user=${{ github.event.inputs.user_id }}"
+          fi
+          if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then
+            ARGS="$ARGS --dry-run"
+          fi
+          npx tsx scripts/monthly-billing.ts $ARGS
+
+      - name: 실행 요약
+        if: always()
+        run: |
+          echo "### 월 정기결제 실행 결과" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "- 상태: ${{ job.status }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- 실행 시각: $(TZ=Asia/Seoul date '+%Y-%m-%d %H:%M:%S KST')" >> "$GITHUB_STEP_SUMMARY"
+          echo "- 트리거: ${{ github.event_name }}" >> "$GITHUB_STEP_SUMMARY"
+          if [ -n "${{ github.event.inputs.user_id }}" ]; then
+            echo "- 대상 사용자: ${{ github.event.inputs.user_id }}" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+  notify-failure:
+    name: 실패 알림
+    needs: billing
+    if: failure() && github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Slack 알림 (SLACK_WEBHOOK_URL 시크릿 설정 시)
+        if: env.SLACK_WEBHOOK_URL != ''
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          curl -X POST -H 'Content-Type: application/json' \
+            --data "{
+              \"text\": \"💸 발주Up 월 정기결제 실패\",
+              \"blocks\": [
+                { \"type\": \"section\", \"text\": { \"type\": \"mrkdwn\", \"text\": \"*월 정기결제 실패가 발생했습니다*\\n실패한 구독은 status=failed 로 표시됩니다. billing_logs 테이블에서 사유 확인.\" }},
+                { \"type\": \"actions\", \"elements\": [
+                  { \"type\": \"button\", \"text\": { \"type\": \"plain_text\", \"text\": \"로그 보기\" },
+                    \"url\": \"${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\" }
+                ]}
+              ]
+            }" \
+            "$SLACK_WEBHOOK_URL"

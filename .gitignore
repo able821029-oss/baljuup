@@ -1,0 +1,44 @@
+# ─────────────────────────────────────────
+# 발주Up — 모노레포 루트 .gitignore
+# ─────────────────────────────────────────
+
+# Next.js / Node
+**/node_modules/
+**/.next/
+**/out/
+**/build/
+**/.vercel
+**/*.tsbuildinfo
+**/next-env.d.ts
+
+# 환경변수 (절대 커밋 금지)
+**/.env
+**/.env.local
+**/.env.*.local
+**/.env.production.local
+**/.env.development.local
+
+# 로그
+**/npm-debug.log*
+**/yarn-debug.log*
+**/yarn-error.log*
+
+# OS
+.DS_Store
+Thumbs.db
+*.pem
+
+# IDE
+.vscode/
+.idea/
+
+# 임시 / 원본 자료
+files/
+files (*)/
+files.zip
+*.zip
+*.tmp
+
+# 빌드 캐시
+.eslintcache
+.cache/

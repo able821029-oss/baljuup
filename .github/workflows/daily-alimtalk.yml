@@ -1,0 +1,96 @@
+name: Daily Alimtalk
+
+# 매일 오전 9시 KST = 00:00 UTC 실행
+# 어제 등록된 신규 입찰공고를 활성 사용자에게 알림톡으로 발송 (멱등)
+
+on:
+  schedule:
+    - cron: '0 0 * * *'
+  workflow_dispatch:
+    inputs:
+      since:
+        description: '시작 날짜 (YYYY-MM-DD, 비우면 어제)'
+        required: false
+        default: ''
+      dry_run:
+        description: 'dry-run 모드 (발송 안함, DB 조회만)'
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  alimtalk:
+    name: 알림톡 발송
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: waterproof-app
+
+    steps:
+      - name: 체크아웃
+        uses: actions/checkout@v4
+
+      - name: Node.js 20 설치
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: waterproof-app/package-lock.json
+
+      - name: 의존성 설치
+        run: npm ci --no-audit --no-fund
+
+      - name: 알림톡 발송
+        env:
+          KAKAO_API_KEY: ${{ secrets.KAKAO_API_KEY }}
+          KAKAO_SENDER_KEY: ${{ secrets.KAKAO_SENDER_KEY }}
+          KAKAO_USER_ID: ${{ secrets.KAKAO_USER_ID }}
+          KAKAO_SENDER_PHONE: ${{ secrets.KAKAO_SENDER_PHONE }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          NEXT_PUBLIC_URL: ${{ secrets.NEXT_PUBLIC_URL }}
+        run: |
+          ARGS=""
+          if [ -n "${{ github.event.inputs.since }}" ]; then
+            ARGS="$ARGS --since=${{ github.event.inputs.since }}"
+          fi
+          if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then
+            ARGS="$ARGS --dry-run"
+          fi
+          npx tsx scripts/send-alimtalks.ts $ARGS
+
+      - name: 실행 요약
+        if: always()
+        run: |
+          echo "### 알림톡 발송 결과" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "- 상태: ${{ job.status }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- 실행 시각: $(TZ=Asia/Seoul date '+%Y-%m-%d %H:%M:%S KST')" >> "$GITHUB_STEP_SUMMARY"
+          echo "- 트리거: ${{ github.event_name }}" >> "$GITHUB_STEP_SUMMARY"
+
+  notify-failure:
+    needs: alimtalk
+    if: failure() && github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Slack 알림
+        if: env.SLACK_WEBHOOK_URL != ''
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          curl -X POST -H 'Content-Type: application/json' \
+            --data "{
+              \"text\": \"📢 알림톡 발송 실패\",
+              \"blocks\": [
+                { \"type\": \"section\", \"text\": { \"type\": \"mrkdwn\", \"text\": \"*발주Up 일일 알림톡 발송 실패*\\n alimtalk_logs 테이블에서 사유 확인.\" }},
+                { \"type\": \"actions\", \"elements\": [
+                  { \"type\": \"button\", \"text\": { \"type\": \"plain_text\", \"text\": \"로그 보기\" },
+                    \"url\": \"${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\" }
+                ]}
+              ]
+            }" \
+            "$SLACK_WEBHOOK_URL"

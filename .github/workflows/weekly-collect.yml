@@ -1,0 +1,120 @@
+name: Weekly Public Data Collection
+
+# 매주 월요일 06:00 KST = 일요일 21:00 UTC 자동 실행
+# 수동으로도 실행 가능 (Actions 탭 → Run workflow)
+
+on:
+  schedule:
+    - cron: '0 21 * * 0'
+  workflow_dispatch:
+    inputs:
+      sido:
+        description: '수집할 시도 (전체 | 11 서울 | 41 경기 | 28 인천)'
+        required: false
+        default: '전체'
+        type: choice
+        options:
+          - 전체
+          - '11'
+          - '41'
+          - '28'
+      mode:
+        description: '수집 모드'
+        required: false
+        default: 'enrich'
+        type: choice
+        options:
+          - basic
+          - enrich
+
+permissions:
+  contents: read
+
+jobs:
+  collect:
+    name: ${{ matrix.sido.name }} (${{ matrix.sido.code }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 300  # 5시간 안전망
+    strategy:
+      fail-fast: false  # 한 시도가 실패해도 다른 시도는 계속
+      max-parallel: 2   # API 부하 분산을 위해 동시 2개까지
+      matrix:
+        sido:
+          - { code: '11', name: '서울' }
+          - { code: '41', name: '경기' }
+
+    defaults:
+      run:
+        working-directory: waterproof-app
+
+    steps:
+      - name: 체크아웃
+        uses: actions/checkout@v4
+
+      - name: Node.js 20 설치
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: waterproof-app/package-lock.json
+
+      - name: 의존성 설치
+        run: npm ci --no-audit --no-fund
+
+      - name: 수동 트리거 — 시도 필터링 (해당 안 되는 시도는 스킵)
+        id: filter
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          DISPATCH_SIDO="${{ github.event.inputs.sido }}"
+          if [ "$DISPATCH_SIDO" != "전체" ] && [ "$DISPATCH_SIDO" != "${{ matrix.sido.code }}" ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "사용자가 ${{ matrix.sido.name }} 가 아닌 $DISPATCH_SIDO 만 선택 → 이 job 스킵"
+          fi
+
+      - name: 단지 수집 — ${{ matrix.sido.name }}
+        if: steps.filter.outputs.skip != 'true'
+        env:
+          DATA_GO_KR_KEY: ${{ secrets.DATA_GO_KR_KEY }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          MODE="${{ github.event.inputs.mode || 'enrich' }}"
+          if [ "$MODE" = "enrich" ]; then
+            npm run collect:enrich -- --sido=${{ matrix.sido.code }}
+          else
+            npm run collect -- --sido=${{ matrix.sido.code }}
+          fi
+
+      - name: 실행 결과 요약
+        if: always() && steps.filter.outputs.skip != 'true'
+        run: |
+          echo "### ${{ matrix.sido.name }} 수집 결과" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "- 상태: ${{ job.status }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- 실행 시각: $(TZ=Asia/Seoul date '+%Y-%m-%d %H:%M:%S KST')" >> "$GITHUB_STEP_SUMMARY"
+          echo "- 모드: ${{ github.event.inputs.mode || 'enrich (정기)' }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- 트리거: ${{ github.event_name }}" >> "$GITHUB_STEP_SUMMARY"
+
+  notify-failure:
+    name: 실패 알림 (정기 실행 한정)
+    needs: collect
+    if: failure() && github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Slack 알림 (SLACK_WEBHOOK_URL 시크릿 설정 시)
+        if: env.SLACK_WEBHOOK_URL != ''
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          curl -X POST -H 'Content-Type: application/json' \
+            --data "{
+              \"text\": \"⚠️ 발주Up 주간 수집 실패\",
+              \"blocks\": [
+                { \"type\": \"section\", \"text\": { \"type\": \"mrkdwn\", \"text\": \"*발주Up 주간 수집 실패*\\n자세한 로그는 GitHub Actions 페이지에서 확인하세요.\" }},
+                { \"type\": \"actions\", \"elements\": [
+                  { \"type\": \"button\", \"text\": { \"type\": \"plain_text\", \"text\": \"로그 보기\" },
+                    \"url\": \"${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\" }
+                ]}
+              ]
+            }" \
+            "$SLACK_WEBHOOK_URL"
