@@ -106,7 +106,7 @@ function LoginPageInner() {
           href="/forgot-password"
           className="text-base font-semibold text-on-surface-var underline decoration-slate-300 underline-offset-4 transition-colors hover:text-accent"
         >
-          아이디/비밀번호 찾기
+          비밀번호 찾기
         </Link>
       </div>
     </div>

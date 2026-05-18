@@ -29,8 +29,10 @@ const PUBLIC_PATHS = [
   '/',
   '/login',
   '/signup',
-  '/auth',          // /auth/callback 등 OAuth 콜백
-  '/api/public',    // 공개 API (있다면)
+  '/forgot-password',  // 비밀번호 재설정 메일 요청
+  '/reset-password',   // 메일 링크 클릭 후 새 비밀번호 입력 (세션은 콜백에서 자동 생성)
+  '/auth',             // /auth/callback 등 OAuth 콜백
+  '/api/public',       // 공개 API (있다면)
 ];
 
 function isPublicPath(pathname: string): boolean {
