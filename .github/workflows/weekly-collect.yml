@@ -19,9 +19,9 @@ on:
           - '41'
           - '28'
       mode:
-        description: '수집 모드'
+        description: '수집 모드 (basic = 단지 목록만, enrich = 유지이력+충당금까지)'
         required: false
-        default: 'enrich'
+        default: 'basic'
         type: choice
         options:
           - basic
@@ -51,10 +51,12 @@ jobs:
       - name: 체크아웃
         uses: actions/checkout@v4
 
-      - name: Node.js 20 설치
+      - name: Node.js 22 설치
+        # Node 22+ 필수: @supabase/realtime-js 가 native WebSocket 을 요구
+        # Node 20 은 native ws 미지원 → SupabaseClient 초기화 단계에서 FATAL
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
           cache: 'npm'
           cache-dependency-path: waterproof-app/package-lock.json
 
@@ -78,7 +80,9 @@ jobs:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: |
-          MODE="${{ github.event.inputs.mode || 'enrich' }}"
+          # 정기 실행(cron)은 basic 모드 (유지이력/충당금 API 미신청 상태 대비)
+          # enrich 모드는 추가 API 신청 후 수동으로만 사용
+          MODE="${{ github.event.inputs.mode || 'basic' }}"
           if [ "$MODE" = "enrich" ]; then
             npm run collect:enrich -- --sido=${{ matrix.sido.code }}
           else

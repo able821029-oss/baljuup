@@ -61,25 +61,25 @@ export default async function DashboardPage() {
     <div className="mx-auto w-full max-w-3xl px-5 pt-6 pb-6 space-y-8 lg:max-w-5xl">
       {/* ── 1. 지표 카드 4종 (2x2 모바일 / 4열 데스크탑) ──────── */}
       <section className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <MetricCard variant="glass" label="모니터링 단지" value={total} unit="개소" />
+        <MetricCard variant="glass"  label="모니터링 단지" value={total} unit="개소" />
         <MetricCard variant="alert"  label="즉시 접촉"    value={critical} unit="건" sub="긴급 대응 필요" />
-        <MetricCard variant="glass" label="이번 달 알림"  value={alertsMonth} unit="회" />
-        <MetricCard variant="dark"  label="수주 성공"     value={won} unit="건" />
+        <MetricCard variant="glass"  label="이번 달 알림"  value={alertsMonth} unit="회" />
+        <MetricCard variant="accent" label="수주 성공"     value={won} unit="건" />
       </section>
 
-      {/* ── 2. 즉시 접촉 TOP 5 (다크 네이비 헤더 + 흰 리스트) ─── */}
+      {/* ── 2. 즉시 접촉 TOP 5 (다크 네이비 그라데이션 헤더 + 흰 리스트) ─── */}
       <section className="space-y-4">
-        <div className="relative overflow-hidden rounded-2xl bg-primary px-6 py-5 text-white shadow-xl shadow-slate-900/10">
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-900 to-primary px-6 py-5 text-white shadow-xl shadow-slate-900/10">
           <div className="absolute right-0 top-0 p-4 opacity-10">
             <Zap size={80} strokeWidth={1.5} />
           </div>
           <div className="relative z-10">
             <div className="flex items-center gap-2">
               <Zap size={20} className="text-blue-400" fill="currentColor" />
-              <h3 className="text-lg font-bold tracking-tight">즉시 접촉 TOP</h3>
+              <h3 className="text-lg font-bold tracking-tight">즉시 접촉 TOP 5</h3>
             </div>
             <p className="mt-1.5 text-xs font-medium text-slate-400">
-              AI 정밀 분석 수주 가능성 상위 단지
+              인공지능 정밀 분석 수주 가능성 상위 현장
             </p>
           </div>
         </div>
@@ -202,7 +202,7 @@ function MetricCard({
   unit,
   sub,
 }: {
-  variant: "glass" | "alert" | "dark";
+  variant: "glass" | "alert" | "dark" | "accent";
   label: string;
   value: number;
   unit: string;
@@ -210,7 +210,7 @@ function MetricCard({
 }) {
   if (variant === "alert") {
     return (
-      <div className="rounded-2xl border border-red-100 bg-white p-5 shadow-sm">
+      <div className="rounded-2xl border border-red-500 bg-white p-5 shadow-xl shadow-red-900/5">
         <p className="mb-2 text-xs font-bold uppercase tracking-wider text-red-600">{label}</p>
         <div className="flex items-baseline gap-1">
           <span className="font-data text-3xl font-black text-red-700 tabular-nums">{value.toLocaleString()}</span>
@@ -225,6 +225,18 @@ function MetricCard({
       </div>
     );
   }
+  if (variant === "accent") {
+    // Stitch 디자인의 "수주 성공" — 파란 강조 카드
+    return (
+      <div className="rounded-2xl border border-white/20 bg-accent p-5 shadow-xl shadow-accent/30">
+        <p className="mb-2 text-xs font-bold uppercase tracking-wider text-white/80">{label}</p>
+        <div className="flex items-baseline gap-1 text-white">
+          <span className="font-data text-3xl font-black tabular-nums">{value.toLocaleString()}</span>
+          <span className="text-xs font-bold opacity-80">{unit}</span>
+        </div>
+      </div>
+    );
+  }
   if (variant === "dark") {
     return (
       <div className="rounded-2xl bg-primary p-5 shadow-xl shadow-primary/10">
@@ -236,9 +248,9 @@ function MetricCard({
       </div>
     );
   }
-  // glass
+  // glass (default: 흰 카드, 짙은 그림자)
   return (
-    <div className="glass-card rounded-2xl p-5">
+    <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-xl">
       <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-on-surface-var">{label}</p>
       <div className="flex items-baseline gap-1">
         <span className="font-data text-3xl font-black text-primary tabular-nums">{value.toLocaleString()}</span>

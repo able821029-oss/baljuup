@@ -160,8 +160,8 @@ export default async function ComplexDetailPage({
       </header>
 
       <main className="mx-auto w-full max-w-md space-y-6 px-4 pt-4 lg:max-w-2xl">
-        {/* ── AI 수주 분석 리포트 (다크 카드) ───────────── */}
-        <section className="overflow-hidden rounded-2xl border-2 border-blue-200 bg-slate-900 text-white shadow-xl shadow-slate-900/10">
+        {/* ── AI 수주 분석 리포트 (다크 카드 — Stitch: black + 라이트 블루 보더) ───────────── */}
+        <section className="overflow-hidden rounded-2xl border-2 border-blue-200 bg-black text-white shadow-xl shadow-slate-900/10">
           <div className="p-5">
             <div className="mb-4 flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -363,22 +363,43 @@ export default async function ComplexDetailPage({
 }
 
 // ============================================================
-// 원형 점수 차트 (SVG)
+// 원형 점수 차트 (SVG) — Stitch 디자인:
+//   - 블루→시안 그라데이션 stroke
+//   - 드롭쉐도우 글로우 효과
+//   - 점수 글자 흰색 + 블루 텍스트 글로우
 // ============================================================
 function ScoreRing({ score }: { score: number }) {
   const radius = 42;
   const circumference = 2 * Math.PI * radius;
   const offset = circumference - (score / 100) * circumference;
+  // 고유 gradient id (페이지 내 여러 ring 출현 대비)
+  const gradId = `progressGradient-${score}`;
   return (
     <div className="relative flex size-24 shrink-0 items-center justify-center">
-      <svg className="size-full -rotate-90">
-        <circle cx="48" cy="48" r={radius} fill="transparent" stroke="rgba(255,255,255,0.2)" strokeWidth="8" />
+      <svg
+        className="size-full -rotate-90"
+        style={{ filter: "drop-shadow(0 0 8px rgba(37,99,235,0.6))" }}
+      >
+        <defs>
+          <linearGradient id={gradId} x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#2563eb" />
+            <stop offset="100%" stopColor="#06b6d4" />
+          </linearGradient>
+        </defs>
         <circle
           cx="48"
           cy="48"
           r={radius}
           fill="transparent"
-          stroke="#bfdbfe"
+          stroke="rgba(255,255,255,0.1)"
+          strokeWidth="8"
+        />
+        <circle
+          cx="48"
+          cy="48"
+          r={radius}
+          fill="transparent"
+          stroke={`url(#${gradId})`}
           strokeWidth="8"
           strokeDasharray={circumference}
           strokeDashoffset={offset}
@@ -386,7 +407,12 @@ function ScoreRing({ score }: { score: number }) {
         />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="text-3xl font-bold leading-none text-blue-100 tabular-nums">{score}%</span>
+        <span
+          className="text-3xl font-bold leading-none tabular-nums text-white"
+          style={{ textShadow: "0 0 20px rgba(37,99,235,0.7)" }}
+        >
+          {score}%
+        </span>
       </div>
     </div>
   );
