@@ -201,10 +201,20 @@ function buildUrl(path: string, params: Record<string, string | number>): string
 }
 
 function extractItems<T>(data: any): T[] {
-  const items = data?.response?.body?.items?.item;
-  if (!items) return [];
-  // 공공 API 가 단일 항목일 때 배열이 아닌 객체로 반환하는 경우가 있음
-  return Array.isArray(items) ? items : [items];
+  // 공공데이터포털 API 응답 구조 — V2 / V3 가 다르게 줌:
+  //   V2: response.body.items.item (단일 항목 시 객체, 다중 시 배열)
+  //   V3: response.body.items       (직접 배열) — V3 부터 표준화
+  //   일부: response.body.item       (드물게)
+  const body = data?.response?.body;
+  if (!body) return [];
+
+  const candidates = [body.items?.item, body.items, body.item];
+  for (const c of candidates) {
+    if (c == null) continue;
+    if (Array.isArray(c)) return c as T[];
+    if (typeof c === 'object') return [c as T];
+  }
+  return [];
 }
 
 // ============================================================
@@ -226,7 +236,15 @@ export async function fetchComplexList(
   });
   const res = await fetchWithRetry<any>(url);
   if (!res.ok) return res;
-  return { ok: true, data: extractItems<ComplexRaw>(res.data) };
+
+  const items = extractItems<ComplexRaw>(res.data);
+  // 디버그: 첫 페이지에 0건이면 응답 구조를 콘솔에 노출 (다음 push 시 제거)
+  if (page === 1 && items.length === 0) {
+    const preview = JSON.stringify(res.data).slice(0, 500);
+    console.warn(`[DEBUG] 시도 ${sidoCode} page 1 응답에서 items 못 찾음. 응답 앞 500자:`);
+    console.warn(preview);
+  }
+  return { ok: true, data: items };
 }
 
 /**
