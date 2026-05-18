@@ -1,0 +1,994 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>발주Up — 사전 모집 (30명 한정, 3개월 무료)</title>
+<meta name="description" content="방수 공사 발주를 6개월 먼저 알려드립니다. 런칭 사전 모집 30명 한정 3개월 무료." />
+<meta property="og:title" content="발주Up — 30명 한정 사전모집 3개월 무료" />
+<meta property="og:description" content="수도권 1.7만 단지의 다음 발주를 AI 로 예측. 사전등록자 한정 3개월 무료." />
+<meta property="og:type" content="website" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;600;700;800&family=Pretendard:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --primary: #1e293b;     /* 다크 네이비 */
+    --accent: #2563eb;      /* 메인 블루 */
+    --accent-2: #06b6d4;    /* 시안 */
+    --warm: #ff6b35;        /* 한정 강조용 오렌지 */
+    --bg: #f8fafc;
+    --on-surface: #0f172a;
+    --on-surface-var: #64748b;
+    --border: #e2e8f0;
+    --success: #16a34a;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: 'Pretendard', 'Hanken Grotesk', -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--on-surface);
+    -webkit-tap-highlight-color: transparent;
+    line-height: 1.55;
+  }
+  img { max-width: 100%; display: block; }
+  a { color: inherit; text-decoration: none; }
+
+  /* ─── 상단 알림바 ─── */
+  .topbar {
+    background: linear-gradient(90deg, var(--warm), #f97316);
+    color: white;
+    text-align: center;
+    padding: 10px 16px;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+  .topbar strong { font-weight: 800; }
+  .topbar .dot {
+    display: inline-block;
+    width: 6px; height: 6px;
+    background: white;
+    border-radius: 50%;
+    margin: 0 6px;
+    vertical-align: middle;
+    animation: pulse 1.5s infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 0.4; }
+    50% { opacity: 1; }
+  }
+
+  /* ─── 헤더 ─── */
+  header {
+    background: white;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    backdrop-filter: blur(10px);
+    background: rgba(255,255,255,0.9);
+  }
+  .header-inner {
+    max-width: 1100px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .brand {
+    font-size: 22px;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+  }
+  .brand .up { color: var(--accent); }
+  .header-cta {
+    background: var(--primary);
+    color: white;
+    font-size: 13px;
+    font-weight: 700;
+    padding: 8px 16px;
+    border-radius: 8px;
+  }
+
+  /* ─── HERO ─── */
+  .hero {
+    background: linear-gradient(135deg, var(--primary) 0%, #0f172a 60%, #020617 100%);
+    color: white;
+    padding: 60px 20px 80px;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180' viewBox='0 0 180 180'><text x='90' y='115' font-family='Hanken Grotesk' font-size='80' font-weight='800' fill='%23ffffff' fill-opacity='0.025' text-anchor='middle'>UP</text></svg>") repeat;
+    pointer-events: none;
+  }
+  .hero-inner {
+    max-width: 720px;
+    margin: 0 auto;
+    position: relative;
+    z-index: 1;
+    text-align: center;
+  }
+  .hero-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(255,107,53,0.15);
+    color: #fdba74;
+    border: 1px solid rgba(255,107,53,0.4);
+    padding: 6px 14px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 700;
+    margin-bottom: 24px;
+    letter-spacing: -0.01em;
+  }
+  .hero h1 {
+    font-size: 34px;
+    line-height: 1.25;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    margin-bottom: 18px;
+  }
+  .hero h1 .highlight {
+    color: var(--accent-2);
+    position: relative;
+    display: inline-block;
+  }
+  .hero h1 .highlight::after {
+    content: '';
+    position: absolute;
+    left: 0; right: 0; bottom: 2px;
+    height: 8px;
+    background: rgba(6,182,212,0.3);
+    z-index: -1;
+  }
+  .hero p.sub {
+    font-size: 16px;
+    color: #cbd5e1;
+    margin-bottom: 36px;
+    line-height: 1.7;
+  }
+
+  /* ─── 카운터 박스 ─── */
+  .counter-box {
+    background: rgba(255,255,255,0.08);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 18px;
+    padding: 22px 20px;
+    margin: 0 auto 28px;
+    max-width: 420px;
+  }
+  .counter-box .label {
+    font-size: 11px;
+    font-weight: 700;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 10px;
+  }
+  .counter-box .progress {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 8px;
+  }
+  .counter-box .current {
+    font-size: 36px;
+    font-weight: 800;
+    color: white;
+    font-family: 'Hanken Grotesk', sans-serif;
+    letter-spacing: -0.03em;
+  }
+  .counter-box .total {
+    font-size: 16px;
+    color: #94a3b8;
+    font-weight: 600;
+  }
+  .bar {
+    background: rgba(255,255,255,0.1);
+    height: 10px;
+    border-radius: 999px;
+    overflow: hidden;
+  }
+  .bar-fill {
+    background: linear-gradient(90deg, var(--accent), var(--accent-2));
+    height: 100%;
+    transition: width 0.8s ease;
+    box-shadow: 0 0 20px rgba(37,99,235,0.5);
+  }
+  .counter-box .remaining {
+    margin-top: 10px;
+    font-size: 12px;
+    color: #fdba74;
+    font-weight: 700;
+  }
+
+  /* ─── CTA 폼 ─── */
+  .cta-form {
+    max-width: 420px;
+    margin: 0 auto;
+  }
+  .cta-form .input-group {
+    background: white;
+    border-radius: 14px;
+    padding: 5px 5px 5px 18px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.25);
+  }
+  .cta-form input {
+    flex: 1;
+    border: none;
+    outline: none;
+    font-size: 16px;
+    font-weight: 500;
+    color: var(--on-surface);
+    background: transparent;
+    padding: 14px 0;
+    font-family: inherit;
+  }
+  .cta-form input::placeholder {
+    color: #94a3b8;
+  }
+  .cta-form button {
+    background: var(--accent);
+    color: white;
+    border: none;
+    padding: 14px 22px;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 800;
+    cursor: pointer;
+    letter-spacing: -0.01em;
+    transition: all 0.15s;
+    font-family: inherit;
+  }
+  .cta-form button:hover {
+    background: #1d4ed8;
+    transform: translateY(-1px);
+  }
+  .cta-form button:active { transform: translateY(0); }
+  .cta-note {
+    font-size: 11px;
+    color: #94a3b8;
+    text-align: center;
+    margin-top: 10px;
+  }
+
+  /* ─── 즉시 혜택 박스 ─── */
+  .benefits-instant {
+    background: white;
+    padding: 40px 20px;
+  }
+  .benefits-inner {
+    max-width: 720px;
+    margin: 0 auto;
+    text-align: center;
+  }
+  .benefits-instant h2 {
+    font-size: 12px;
+    color: var(--accent);
+    font-weight: 800;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+  .benefits-instant .title {
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--on-surface);
+    letter-spacing: -0.02em;
+    margin-bottom: 30px;
+  }
+  .benefits-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  @media (min-width: 600px) {
+    .benefits-grid { grid-template-columns: repeat(3, 1fr); }
+  }
+  .benefit-card {
+    background: linear-gradient(135deg, #f0f9ff, #ecfeff);
+    border: 1px solid #bae6fd;
+    padding: 22px 18px;
+    border-radius: 14px;
+    text-align: left;
+  }
+  .benefit-card .icon {
+    font-size: 28px;
+    margin-bottom: 10px;
+  }
+  .benefit-card .name {
+    font-size: 13px;
+    font-weight: 800;
+    color: var(--primary);
+    margin-bottom: 4px;
+  }
+  .benefit-card .value {
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--accent);
+    margin-bottom: 6px;
+    font-family: 'Hanken Grotesk', sans-serif;
+    letter-spacing: -0.02em;
+  }
+  .benefit-card .desc {
+    font-size: 12px;
+    color: var(--on-surface-var);
+    line-height: 1.5;
+  }
+
+  /* ─── 핵심 가치 ─── */
+  .core {
+    background: var(--bg);
+    padding: 70px 20px;
+  }
+  .core-inner {
+    max-width: 1000px;
+    margin: 0 auto;
+  }
+  .core h2 {
+    font-size: 28px;
+    font-weight: 800;
+    text-align: center;
+    margin-bottom: 14px;
+    letter-spacing: -0.03em;
+  }
+  .core .sub {
+    text-align: center;
+    color: var(--on-surface-var);
+    font-size: 15px;
+    margin-bottom: 48px;
+  }
+  .core-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 18px;
+  }
+  @media (min-width: 768px) {
+    .core-grid { grid-template-columns: repeat(3, 1fr); }
+  }
+  .core-card {
+    background: white;
+    border-radius: 16px;
+    padding: 28px 22px;
+    border: 1px solid var(--border);
+    box-shadow: 0 4px 14px rgba(0,0,0,0.03);
+  }
+  .core-card .num {
+    width: 36px; height: 36px;
+    background: var(--accent);
+    color: white;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 16px;
+    margin-bottom: 16px;
+  }
+  .core-card h3 {
+    font-size: 18px;
+    font-weight: 800;
+    margin-bottom: 10px;
+    letter-spacing: -0.02em;
+  }
+  .core-card p {
+    font-size: 14px;
+    color: var(--on-surface-var);
+    line-height: 1.65;
+  }
+
+  /* ─── 사회적 증거 ─── */
+  .proof {
+    background: linear-gradient(135deg, var(--primary), #0f172a);
+    color: white;
+    padding: 60px 20px;
+    text-align: center;
+  }
+  .proof-inner {
+    max-width: 900px;
+    margin: 0 auto;
+  }
+  .proof .label {
+    font-size: 11px;
+    color: #94a3b8;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+  .proof h2 {
+    font-size: 24px;
+    font-weight: 800;
+    margin-bottom: 30px;
+    letter-spacing: -0.02em;
+  }
+  .proof-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    max-width: 700px;
+    margin: 0 auto;
+  }
+  .stat .num {
+    font-size: 36px;
+    font-weight: 800;
+    font-family: 'Hanken Grotesk', sans-serif;
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    letter-spacing: -0.03em;
+  }
+  .stat .desc {
+    font-size: 12px;
+    color: #cbd5e1;
+    margin-top: 4px;
+    font-weight: 600;
+  }
+
+  /* ─── 어떻게 작동하나 ─── */
+  .how {
+    background: white;
+    padding: 70px 20px;
+  }
+  .how-inner {
+    max-width: 800px;
+    margin: 0 auto;
+  }
+  .how h2 {
+    font-size: 24px;
+    font-weight: 800;
+    text-align: center;
+    margin-bottom: 40px;
+    letter-spacing: -0.03em;
+  }
+  .step {
+    display: flex;
+    gap: 18px;
+    padding: 20px 0;
+    border-bottom: 1px dashed var(--border);
+  }
+  .step:last-child { border-bottom: none; }
+  .step .step-num {
+    flex-shrink: 0;
+    width: 40px; height: 40px;
+    background: var(--bg);
+    border: 2px solid var(--accent);
+    color: var(--accent);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 15px;
+  }
+  .step .content h3 {
+    font-size: 16px;
+    font-weight: 800;
+    margin-bottom: 6px;
+    color: var(--on-surface);
+  }
+  .step .content p {
+    font-size: 13px;
+    color: var(--on-surface-var);
+    line-height: 1.6;
+  }
+
+  /* ─── 최종 CTA ─── */
+  .final-cta {
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    color: white;
+    padding: 80px 20px;
+    text-align: center;
+  }
+  .final-cta h2 {
+    font-size: 28px;
+    font-weight: 800;
+    margin-bottom: 14px;
+    letter-spacing: -0.03em;
+    line-height: 1.3;
+  }
+  .final-cta p {
+    font-size: 15px;
+    margin-bottom: 32px;
+    opacity: 0.92;
+  }
+  .final-cta .cta-form .input-group {
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+  }
+  .final-cta .cta-form button {
+    background: var(--primary);
+  }
+  .final-cta .cta-form button:hover {
+    background: #0f172a;
+  }
+  .final-cta .cta-note { color: rgba(255,255,255,0.7); }
+
+  /* ─── FAQ ─── */
+  .faq {
+    background: var(--bg);
+    padding: 60px 20px;
+  }
+  .faq-inner {
+    max-width: 720px;
+    margin: 0 auto;
+  }
+  .faq h2 {
+    font-size: 22px;
+    font-weight: 800;
+    text-align: center;
+    margin-bottom: 32px;
+    letter-spacing: -0.02em;
+  }
+  details {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    margin-bottom: 10px;
+    overflow: hidden;
+  }
+  summary {
+    padding: 18px 20px;
+    font-weight: 700;
+    font-size: 14px;
+    cursor: pointer;
+    list-style: none;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  summary::after {
+    content: '+';
+    font-size: 20px;
+    color: var(--accent);
+    font-weight: 800;
+    transition: transform 0.2s;
+  }
+  details[open] summary::after {
+    transform: rotate(45deg);
+  }
+  details p {
+    padding: 0 20px 18px;
+    font-size: 13px;
+    color: var(--on-surface-var);
+    line-height: 1.7;
+  }
+
+  /* ─── 푸터 ─── */
+  footer {
+    background: var(--primary);
+    color: #94a3b8;
+    padding: 40px 20px 30px;
+    text-align: center;
+    font-size: 12px;
+  }
+  footer .brand-footer {
+    color: white;
+    font-weight: 800;
+    font-size: 18px;
+    margin-bottom: 10px;
+  }
+  footer .brand-footer .up { color: var(--accent-2); }
+  footer .contact {
+    margin-top: 16px;
+    line-height: 1.8;
+  }
+  footer a { color: #cbd5e1; text-decoration: underline; }
+
+  /* ─── 성공 모달 ─── */
+  .success-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(15,23,42,0.7);
+    backdrop-filter: blur(8px);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    padding: 20px;
+  }
+  .success-overlay.show { display: flex; }
+  .success-modal {
+    background: white;
+    border-radius: 20px;
+    padding: 32px 24px;
+    max-width: 380px;
+    width: 100%;
+    text-align: center;
+  }
+  .success-modal .check {
+    width: 60px; height: 60px;
+    background: var(--success);
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 18px;
+    font-size: 28px;
+    font-weight: 800;
+  }
+  .success-modal h3 {
+    font-size: 20px;
+    font-weight: 800;
+    margin-bottom: 8px;
+    letter-spacing: -0.02em;
+  }
+  .success-modal p {
+    color: var(--on-surface-var);
+    font-size: 14px;
+    line-height: 1.6;
+    margin-bottom: 22px;
+  }
+  .success-modal button {
+    background: var(--accent);
+    color: white;
+    border: none;
+    padding: 12px 28px;
+    border-radius: 10px;
+    font-weight: 800;
+    font-size: 14px;
+    cursor: pointer;
+    font-family: inherit;
+  }
+
+  /* 모바일 반응형 */
+  @media (max-width: 480px) {
+    .hero { padding: 40px 16px 60px; }
+    .hero h1 { font-size: 28px; }
+    .hero p.sub { font-size: 14px; }
+    .counter-box .current { font-size: 30px; }
+    .core h2, .final-cta h2 { font-size: 24px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- 상단 알림바 -->
+<div class="topbar">
+  <span class="dot"></span>
+  <strong>30명 한정 사전 모집</strong> · 런칭 후 3개월 무료 + 평생 30% 할인
+</div>
+
+<!-- 헤더 -->
+<header>
+  <div class="header-inner">
+    <div class="brand">발주<span class="up">Up</span></div>
+    <a href="#cta-form" class="header-cta">사전 등록</a>
+  </div>
+</header>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-inner">
+    <div class="hero-badge">🔥 런칭 전 사전 모집 진행 중</div>
+    <h1>
+      방수업체 사장님,<br>
+      다음 발주를 <span class="highlight">6개월 먼저</span> 알 수 있다면?
+    </h1>
+    <p class="sub">
+      수도권 1.7만 단지의 노후도·충당금·이력을 AI가 24시간 분석.<br>
+      <strong style="color:white;">발주가 임박한 단지</strong>를 입찰공고 전에 알려드립니다.
+    </p>
+
+    <!-- 카운터 -->
+    <div class="counter-box">
+      <div class="label">⏳ 사전 등록 현황</div>
+      <div class="progress">
+        <span><span class="current" id="counter-current">17</span><span class="total"> / 30명</span></span>
+        <span class="total" id="counter-pct">57%</span>
+      </div>
+      <div class="bar"><div class="bar-fill" id="counter-bar" style="width:57%"></div></div>
+      <div class="remaining">🎯 남은 자리 <strong>13명</strong> · 마감 임박</div>
+    </div>
+
+    <!-- CTA 폼 -->
+    <form class="cta-form" id="early-form">
+      <div class="input-group">
+        <input type="tel" name="phone" placeholder="010-0000-0000" required maxlength="14" />
+        <button type="submit">등록하기</button>
+      </div>
+      <p class="cta-note">번호만 남기시면 런칭 시 카톡으로 안내드립니다. 3초 소요.</p>
+    </form>
+  </div>
+</section>
+
+<!-- 즉시 혜택 -->
+<section class="benefits-instant">
+  <div class="benefits-inner">
+    <h2>사전 등록자 한정 혜택</h2>
+    <p class="title">출시 후에는 못 받습니다</p>
+    <div class="benefits-grid">
+      <div class="benefit-card">
+        <div class="icon">🎁</div>
+        <div class="name">런칭 후</div>
+        <div class="value">3개월 무료</div>
+        <div class="desc">출시 시점부터 첫 3개월 전 기능 무료. 신용카드 등록 없음.</div>
+      </div>
+      <div class="benefit-card">
+        <div class="icon">💎</div>
+        <div class="name">정식 가입 시</div>
+        <div class="value">평생 30% 할인</div>
+        <div class="desc">사전 등록자만 평생 30% 할인. 인상되어도 그대로 유지.</div>
+      </div>
+      <div class="benefit-card">
+        <div class="icon">📞</div>
+        <div class="name">대표가 직접</div>
+        <div class="value">1:1 온보딩</div>
+        <div class="desc">출시 후 1주일 내 대표가 직접 전화로 사용법 안내.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 핵심 가치 -->
+<section class="core">
+  <div class="core-inner">
+    <h2>왜 발주Up 인가</h2>
+    <p class="sub">기존 방식 vs 발주Up — 사장님 시간을 9배 줄여드립니다</p>
+    <div class="core-grid">
+      <div class="core-card">
+        <div class="num">1</div>
+        <h3>입찰공고 뜨기 전 예측</h3>
+        <p>
+          충당금·노후도·유지이력을 AI가 분석해 <strong>6개월~1년 전에</strong>
+          발주 가능성 점수로 알려드립니다. 경쟁사보다 먼저 영업 가능.
+        </p>
+      </div>
+      <div class="core-card">
+        <div class="num">2</div>
+        <h3>관리소장 전화번호 즉시</h3>
+        <p>
+          공공데이터 기반 1.7만 단지의 관리소장 직통 번호. 정확한 영업 타이밍에
+          바로 컨택할 수 있습니다.
+        </p>
+      </div>
+      <div class="core-card">
+        <div class="num">3</div>
+        <h3>AI 제안서 1분 생성</h3>
+        <p>
+          단지 정보를 자동으로 분석해 맞춤 제안서를 PDF 로 즉시 생성.
+          이메일·카톡으로 발송까지 한 번에.
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 사회적 증거 -->
+<section class="proof">
+  <div class="proof-inner">
+    <div class="label">🏆 신뢰할 수 있는 데이터</div>
+    <h2>국토교통부 공공데이터 정식 활용</h2>
+    <div class="proof-stats">
+      <div class="stat">
+        <div class="num">17,000+</div>
+        <div class="desc">수도권 단지</div>
+      </div>
+      <div class="stat">
+        <div class="num">24/7</div>
+        <div class="desc">자동 분석</div>
+      </div>
+      <div class="stat">
+        <div class="num">4종</div>
+        <div class="desc">공공 API</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 어떻게 작동 -->
+<section class="how">
+  <div class="how-inner">
+    <h2>사용 흐름</h2>
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="content">
+        <h3>관심 지역 설정 (1분)</h3>
+        <p>서울/경기 중 영업할 지역 체크. 평생 변경 가능.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="content">
+        <h3>AI 자동 점수 분석</h3>
+        <p>매일 새벽 자동 갱신. 점수 높은 단지가 대시보드 상단에 자동 노출.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="content">
+        <h3>입찰공고 즉시 알림</h3>
+        <p>관심 단지에 입찰공고가 뜨면 카톡 알림. 경쟁사보다 먼저 움직임.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">4</div>
+      <div class="content">
+        <h3>클릭 한 번에 제안서</h3>
+        <p>단지 상세 페이지에서 "AI 제안서" 클릭 → 1분 내 PDF 다운로드.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 최종 CTA -->
+<section class="final-cta" id="cta-form">
+  <h2>지금 등록하시면 마감까지 자리 보장.</h2>
+  <p>번호만 남기시면 끝. 런칭 시 카톡으로 안내드립니다.</p>
+  <form class="cta-form" id="final-form">
+    <div class="input-group">
+      <input type="tel" name="phone" placeholder="010-0000-0000" required maxlength="14" />
+      <button type="submit">자리 잡기</button>
+    </div>
+    <p class="cta-note">개인정보는 안내 후 즉시 폐기 가능 · 광고 수신 없음</p>
+  </form>
+</section>
+
+<!-- FAQ -->
+<section class="faq">
+  <div class="faq-inner">
+    <h2>자주 묻는 질문</h2>
+
+    <details>
+      <summary>언제 출시되나요?</summary>
+      <p>2026년 6월 중순 출시 예정입니다. 사전 등록자는 출시 1주일 전 카톡으로 먼저 안내드립니다.</p>
+    </details>
+
+    <details>
+      <summary>3개월 무료 후 자동 결제되나요?</summary>
+      <p>아니요. 신용카드 등록을 받지 않습니다. 3개월 후 사용을 원하시면 직접 결제하시는 구조입니다. 강제 결제 절대 없음.</p>
+    </details>
+
+    <details>
+      <summary>데이터는 어디서 가져오나요?</summary>
+      <p>
+        국토교통부 공공데이터포털의 공식 API 4종을 사용합니다.
+        (공동주택 단지 목록 / 기본 정보 / 유지관리 이력 / 장기수선충당금)
+      </p>
+    </details>
+
+    <details>
+      <summary>방수 외 다른 공종도 되나요?</summary>
+      <p>
+        방수·도장·엘리베이터·배관·주차장·조경 6대 공종을 자동 분석합니다.
+        단지 노후도에 맞춰 다음 공사를 예측해드립니다.
+      </p>
+    </details>
+
+    <details>
+      <summary>경쟁사도 같은 데이터 보지 않나요?</summary>
+      <p>
+        공공데이터는 누구나 받을 수 있지만, <strong>AI로 점수화·정렬·알림</strong>까지
+        하는 도구는 발주Up이 처음입니다. 가공 시간이 곧 경쟁력입니다.
+      </p>
+    </details>
+
+    <details>
+      <summary>휴대폰 번호만 남겨도 되나요?</summary>
+      <p>
+        네. 런칭 안내만 카톡으로 발송하고, 광고 수신은 본인이 동의해야 발송됩니다.
+        원하시면 즉시 연락처 삭제도 가능합니다.
+      </p>
+    </details>
+  </div>
+</section>
+
+<!-- 푸터 -->
+<footer>
+  <div class="brand-footer">발주<span class="up">Up</span></div>
+  <div>아파트 방수 공사 수주를 6개월 먼저</div>
+  <div class="contact">
+    문의: support@baljuup.co.kr · 평일 09:00~18:00<br>
+    © 2026 발주Up. All rights reserved.
+  </div>
+</footer>
+
+<!-- 성공 모달 -->
+<div class="success-overlay" id="success-overlay">
+  <div class="success-modal">
+    <div class="check">✓</div>
+    <h3>등록 완료!</h3>
+    <p>
+      런칭 1주일 전 카톡으로<br>
+      안내드리겠습니다.<br>
+      <strong>3개월 무료 자리 보장 완료!</strong>
+    </p>
+    <button onclick="document.getElementById('success-overlay').classList.remove('show')">
+      확인
+    </button>
+  </div>
+</div>
+
+<script>
+  // ─── 폼 제출 핸들러 ───
+  // ⚠️ GAS_ENDPOINT 를 본인 Apps Script 배포 URL로 교체 (apps_script.gs 참고)
+  const GAS_ENDPOINT = 'https://script.google.com/macros/s/REPLACE_WITH_YOUR_DEPLOYMENT_ID/exec';
+
+  async function submitPhone(form) {
+    const phone = form.querySelector('input[name="phone"]').value.trim();
+    if (!phone) return;
+
+    // 클라이언트 사이드 간단 검증
+    const digits = phone.replace(/[^0-9]/g, '');
+    if (digits.length < 10) {
+      alert('휴대폰 번호를 정확히 입력해주세요.');
+      return;
+    }
+
+    // 버튼 비활성화
+    const btn = form.querySelector('button');
+    const original = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = '등록 중...';
+
+    try {
+      // GAS 는 CORS 문제 회피용 no-cors 모드로 fire-and-forget
+      await fetch(GAS_ENDPOINT, {
+        method: 'POST',
+        mode: 'no-cors',
+        body: JSON.stringify({
+          phone: digits,
+          timestamp: new Date().toISOString(),
+          source: 'landing_v2',
+          ua: navigator.userAgent.slice(0, 200),
+        }),
+      });
+
+      // 성공 모달 표시
+      document.getElementById('success-overlay').classList.add('show');
+      form.reset();
+
+      // 카운터 1 증가 (시각적 피드백)
+      const cur = document.getElementById('counter-current');
+      const bar = document.getElementById('counter-bar');
+      const pct = document.getElementById('counter-pct');
+      const next = Math.min(30, parseInt(cur.textContent) + 1);
+      cur.textContent = next;
+      bar.style.width = Math.round((next / 30) * 100) + '%';
+      pct.textContent = Math.round((next / 30) * 100) + '%';
+    } catch (e) {
+      alert('등록 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = original;
+    }
+  }
+
+  document.getElementById('early-form').addEventListener('submit', (e) => {
+    e.preventDefault();
+    submitPhone(e.target);
+  });
+  document.getElementById('final-form').addEventListener('submit', (e) => {
+    e.preventDefault();
+    submitPhone(e.target);
+  });
+
+  // ─── 휴대폰 자동 하이픈 ───
+  document.querySelectorAll('input[type="tel"]').forEach((input) => {
+    input.addEventListener('input', (e) => {
+      const v = e.target.value.replace(/[^0-9]/g, '').slice(0, 11);
+      let formatted = v;
+      if (v.length >= 8) {
+        formatted = v.slice(0, 3) + '-' + v.slice(3, 7) + '-' + v.slice(7);
+      } else if (v.length >= 4) {
+        formatted = v.slice(0, 3) + '-' + v.slice(3);
+      }
+      e.target.value = formatted;
+    });
+  });
+</script>
+
+</body>
+</html>
