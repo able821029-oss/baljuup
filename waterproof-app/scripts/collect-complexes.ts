@@ -23,6 +23,10 @@
  *   - 진행률 한 줄 갱신 + 5초마다 누적 통계 출력
  */
 
+// .env.local 자동 로드 — 반드시 다른 import 보다 먼저!
+// (kapt-api.ts 의 const API_KEY = process.env... 가 import 시점에 평가됨)
+import './_loadEnv';
+
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import {
   fetchAllComplexes,
