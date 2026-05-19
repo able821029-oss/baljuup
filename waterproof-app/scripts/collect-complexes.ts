@@ -272,10 +272,18 @@ async function enrichAndScore(
         }
         if (builtYear != null) stats.builtFound++;
 
+        // 세대수/동수 — 목록 응답 또는 기본정보 API 에서 추출 (대단지 가산점 + 결정적 지터)
+        const baseNorm = normalizeComplex(c);
+        const basicNorm = basicRes.ok ? normalizeComplex(basicRes.data) : null;
+        const householdsForScore = baseNorm.households ?? basicNorm?.households ?? null;
+        const buildingsForScore = baseNorm.buildings ?? basicNorm?.buildings ?? null;
+
         const pred = calcPredictionScore({
           builtYear,
           lastWaterproofYear,
           fundBalance,
+          households: householdsForScore,
+          buildings: buildingsForScore,
         });
 
         if (supabase) {

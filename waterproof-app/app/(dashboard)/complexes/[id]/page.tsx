@@ -96,6 +96,8 @@ export default async function ComplexDetailPage({
     lastWaterproofYear,
     fundBalance: latestFund,
     activeBids,
+    households: c.households,
+    buildings: c.buildings,
   });
 
   // ── 표시값 가공 ─────────────────────────────────────────

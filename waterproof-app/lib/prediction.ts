@@ -29,6 +29,8 @@ export interface PredictionInput {
   lastWaterproofYear?: number | null; // 마지막 방수 공사 연도 (없으면 builtYear 사용)
   fundBalance?: number | null;        // 장기수선충당금 잔액 (원)
   activeBids?: number;                // 현재 활성 입찰공고 수
+  households?: number | null;         // 세대수 (대단지 가산점, 결정적 지터 시드)
+  buildings?: number | null;          // 동수 (대단지 보강)
   currentYear?: number;               // 테스트용 — 미지정 시 new Date().getFullYear()
 }
 
@@ -44,10 +46,12 @@ export interface PredictionResult {
   yearsUntilExpected: number;       // 현재 기준 남은 연수 (음수면 이미 지남)
   reasons: string[];                // 점수 산출 근거 (UI 툴팁용)
   breakdown: {
-    cycleScore: number;
-    ageScore: number;
-    fundScore: number;
-    bidsBonus: number;
+    cycleScore: number;             // 방수 사이클 (0~100)
+    ageScore: number;               // 준공 노후 (0~50)
+    fundScore: number;              // 충당금 (0~12)
+    bidsBonus: number;              // 활성 입찰 (0/15)
+    sizeBonus: number;              // 대단지 (0~8)
+    jitter: number;                 // 결정적 미세 변동 (-3~+3)
   };
 }
 
@@ -73,8 +77,6 @@ export function getTierFromScore(score: number): ScoreTier {
 // ============================================================
 // 메인 함수
 // ============================================================
-const CYCLE_YEARS = 15;        // 사이클 정규화 분모
-const AGE_REFERENCE = 20;      // 노후 정규화 분모
 const EXPECTED_GAP = 17;       // 예상 발주 = 마지막 방수 + 17년
 
 export function calcPredictionScore(input: PredictionInput): PredictionResult {
@@ -83,10 +85,11 @@ export function calcPredictionScore(input: PredictionInput): PredictionResult {
   const lastWaterproof = input.lastWaterproofYear ?? builtYear;
   const fund = input.fundBalance ?? 0;
   const bids = input.activeBids ?? 0;
+  const households = input.households ?? null;
+  const buildings = input.buildings ?? null;
 
   // 준공연도 + 마지막 방수공사 + 충당금 + 활성 입찰공고
   // 모두 없으면 진짜로 산정 불가 → 0점
-  // 하나라도 있으면 가능한 만큼 점수 산출 (MVP — 추후 기본정보 API 추가로 보강)
   const hasBuilt = !!builtYear && Number.isFinite(builtYear);
   const hasWp = !!input.lastWaterproofYear && Number.isFinite(input.lastWaterproofYear);
   const hasAnySignal = hasBuilt || hasWp || fund > 0 || bids > 0;
@@ -94,32 +97,77 @@ export function calcPredictionScore(input: PredictionInput): PredictionResult {
     return zeroResult('수집된 분석 데이터 없음', currentYear);
   }
 
-  // builtYear 없으면 lastWaterproof 를 기준 시점으로 사용,
-  // 둘 다 없으면 현재 - 15년 으로 가정 (방수 사이클 = 15년)
   const baseYear =
     hasBuilt ? (builtYear as number)
     : hasWp ? (input.lastWaterproofYear as number)
-    : currentYear - CYCLE_YEARS;
+    : currentYear - 15;
 
   const sinceBuilt = currentYear - baseYear;
   const sinceLastWaterproof = currentYear - ((lastWaterproof as number) ?? baseYear);
 
-  // ── 1. 사이클 점수 (방수 후 경과 / 15년) — 0~100 ────────────
-  const cycleScore = clamp((sinceLastWaterproof / CYCLE_YEARS) * 100, 0, 100);
+  // ── 1. 사이클 점수 (방수 후 경과) — piecewise, 0~100 ──────────
+  // 0-8년: 신축 직후, 발주 가능성 낮음 (0→30)
+  // 8-12년: 일부 단지가 첫 시공 시작 (30→60)
+  // 12-15년: 표준 사이클 도래 (60→90)
+  // 15-22년: 오버 시즌 — 가장 시급 (90→100)
+  // 22-30년: 이미 했을 수도 (기록 없음) (100→88)
+  // 30년+: 2차 사이클 도래 가능성 (88→95, 다시 상승)
+  let cycleScore: number;
+  const wp = sinceLastWaterproof;
+  if (wp < 8) cycleScore = wp * (30 / 8);
+  else if (wp < 12) cycleScore = 30 + (wp - 8) * (30 / 4);
+  else if (wp < 15) cycleScore = 60 + (wp - 12) * (30 / 3);
+  else if (wp < 22) cycleScore = 90 + (wp - 15) * (10 / 7);
+  else if (wp < 30) cycleScore = 100 - (wp - 22) * (12 / 8);
+  else cycleScore = Math.min(95, 88 + (wp - 30) * 0.7);
+  cycleScore = clamp(cycleScore, 0, 100);
 
-  // ── 2. 노후 점수 (준공 경과 / 20년) — 0~50 ───────────────────
-  const ageScore = clamp((sinceBuilt / AGE_REFERENCE) * 50, 0, 50);
+  // ── 2. 노후 점수 (준공 경과) — 0~50, 동일 곡선 패턴 ───────────
+  // 0-10년: 0→10 / 10-20년: 10→30 / 20-30년: 30→45 / 30년+: 천천히 45→50
+  let ageScore: number;
+  const a = sinceBuilt;
+  if (a < 10) ageScore = a * 1.0;
+  else if (a < 20) ageScore = 10 + (a - 10) * 2.0;
+  else if (a < 30) ageScore = 30 + (a - 20) * 1.5;
+  else ageScore = Math.min(50, 45 + (a - 30) * 0.3);
+  ageScore = clamp(ageScore, 0, 50);
 
-  // ── 3. 충당금 점수 — 0/10/20 ─────────────────────────────────
+  // ── 3. 충당금 점수 — 단계적 (0~12) ───────────────────────────
   let fundScore = 0;
-  if (fund >= 300_000_000) fundScore = 20;
-  else if (fund >= 100_000_000) fundScore = 10;
+  if (fund >= 500_000_000) fundScore = 12;
+  else if (fund >= 300_000_000) fundScore = 9;
+  else if (fund >= 100_000_000) fundScore = 5;
+  else if (fund >= 50_000_000) fundScore = 2;
 
   // ── 4. 활성 입찰공고 보너스 ──────────────────────────────────
   const bidsBonus = bids > 0 ? 15 : 0;
 
+  // ── 5. 대단지 보너스 (세대수 × 동수) — 0~8 ────────────────────
+  let sizeBonus = 0;
+  if (households != null) {
+    if (households >= 2000) sizeBonus = 8;
+    else if (households >= 1000) sizeBonus = 5;
+    else if (households >= 500) sizeBonus = 3;
+    else if (households >= 200) sizeBonus = 1;
+  }
+  if (buildings != null && buildings >= 10) sizeBonus = Math.min(8, sizeBonus + 1);
+
+  // ── 6. 결정적 미세 지터 (-3~+3) ───────────────────────────────
+  // 모든 신호가 동일/없을 때도 ID 별로 살짝 다른 점수 → 정렬 시 동점 무리 회피
+  let jitter = 0;
+  if (hasBuilt) {
+    const seed = (builtYear as number) * 7 + (households ?? 0) + (buildings ?? 0) * 13;
+    jitter = (seed % 7) - 3;
+  }
+
   // ── 가중합산 ─────────────────────────────────────────────────
-  const rawScore = cycleScore * 0.65 + ageScore * 0.25 + fundScore + bidsBonus;
+  const rawScore =
+    cycleScore * 0.55       // 방수 사이클이 가장 결정적 (55%)
+    + ageScore * 0.50       // 노후는 ageScore 자체가 0~50 → 환산 후 25%
+    + fundScore             // 0~12
+    + bidsBonus             // 0/15
+    + sizeBonus             // 0~8
+    + jitter;               // -3~+3
   const score = Math.round(clamp(rawScore, 0, 100));
 
   const tier = getTierFromScore(score);
@@ -153,6 +201,8 @@ export function calcPredictionScore(input: PredictionInput): PredictionResult {
       ageScore: Math.round(ageScore),
       fundScore,
       bidsBonus,
+      sizeBonus,
+      jitter,
     },
   };
 }
@@ -177,7 +227,7 @@ function zeroResult(reason: string, currentYear: number): PredictionResult {
     expectedOrderYear: currentYear,
     yearsUntilExpected: 0,
     reasons: [reason],
-    breakdown: { cycleScore: 0, ageScore: 0, fundScore: 0, bidsBonus: 0 },
+    breakdown: { cycleScore: 0, ageScore: 0, fundScore: 0, bidsBonus: 0, sizeBonus: 0, jitter: 0 },
   };
 }
 
