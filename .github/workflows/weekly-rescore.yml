@@ -39,7 +39,7 @@ jobs:
 
       - name: Node.js 22 설치
         # @supabase/realtime-js 가 native WebSocket 을 요구해 Node 22+ 필수
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: '22'
           cache: 'npm'
