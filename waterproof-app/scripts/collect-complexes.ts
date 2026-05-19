@@ -33,6 +33,8 @@ import {
   SIDO_CODES,
   isWaterproofWork,
   type ComplexRaw,
+  type MaintenanceHistoryRaw,
+  type MaintenanceFundRaw,
 } from '../lib/kapt-api';
 import { calcPredictionScore } from '../lib/prediction';
 
@@ -125,10 +127,12 @@ async function main() {
     if (!complexes.length) continue;
 
     // ── Supabase 적재 ──────────────────────────────────────
+    let idMap = new Map<string, string>();
     if (!DRY_RUN && supabase) {
-      const upserted = await upsertComplexes(supabase, complexes);
-      allStats.upserted += upserted;
-      console.log(`  Supabase upsert: ${upserted.toLocaleString()}건`);
+      const result = await upsertComplexes(supabase, complexes);
+      idMap = result.idMap;
+      allStats.upserted += result.count;
+      console.log(`  Supabase upsert: ${result.count.toLocaleString()}건`);
     } else {
       console.log('  [dry-run] DB 적재 생략');
       console.log('  샘플 (첫 3건):', complexes.slice(0, 3).map((c) => c.kaptName));
@@ -136,8 +140,8 @@ async function main() {
 
     // ── 보강 (옵션) ────────────────────────────────────────
     if (ENRICH) {
-      console.log(`  보강 단계 시작 — ${complexes.length}건의 유지이력 + 충당금 조회`);
-      const enriched = await enrichAndScore(supabase, complexes);
+      console.log(`  보강 단계 시작 — ${complexes.length}건의 유지이력 + 충당금 조회 + 자식 테이블 적재`);
+      const enriched = await enrichAndScore(supabase, complexes, idMap);
       allStats.enriched += enriched;
       console.log(`  보강 완료: ${enriched.toLocaleString()}건 갱신`);
     }
@@ -161,9 +165,11 @@ async function main() {
 async function upsertComplexes(
   supabase: SupabaseClient,
   complexes: ComplexRaw[]
-): Promise<number> {
+): Promise<{ count: number; idMap: Map<string, string> }> {
   const BATCH = 500;
   let count = 0;
+  // kapt_code → complexes.id (UUID) — enrich 단계에서 자식 테이블 insert 시 필요
+  const idMap = new Map<string, string>();
 
   for (let i = 0; i < complexes.length; i += BATCH) {
     const slice = complexes.slice(i, i + BATCH);
@@ -171,19 +177,23 @@ async function upsertComplexes(
       .map((c) => normalizeComplex(c))
       .filter((r) => r.kapt_code && r.name);
 
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('complexes')
-      .upsert(rows, { onConflict: 'kapt_code', ignoreDuplicates: false });
+      .upsert(rows, { onConflict: 'kapt_code', ignoreDuplicates: false })
+      .select('id, kapt_code');
 
     if (error) {
       console.error(`  [WARN] upsert 배치 ${i}~${i + BATCH} 실패: ${error.message}`);
       continue;
     }
+    for (const r of (data ?? []) as Array<{ id: string; kapt_code: string }>) {
+      idMap.set(r.kapt_code, r.id);
+    }
     count += rows.length;
     process.stdout.write(`\r  upsert 진행: ${count.toLocaleString()} / ${complexes.length.toLocaleString()}`);
   }
   process.stdout.write('\n');
-  return count;
+  return { count, idMap };
 }
 
 // ============================================================
@@ -191,10 +201,13 @@ async function upsertComplexes(
 // ============================================================
 async function enrichAndScore(
   supabase: SupabaseClient | null,
-  complexes: ComplexRaw[]
+  complexes: ComplexRaw[],
+  idMap: Map<string, string>,
 ): Promise<number> {
   let processed = 0;
   let updated = 0;
+  let histRowsInserted = 0;
+  let fundRowsUpserted = 0;
   // 디버그 통계 — 첫 실행에서 API 별 성공률 확인
   const stats = {
     basicOk: 0, basicFail: 0,
@@ -307,6 +320,19 @@ async function enrichAndScore(
             .update(update)
             .eq('kapt_code', kaptCode);
           if (!error) updated++;
+
+          // ── 자식 테이블 적재 — UUID 가 있어야 가능 ──────────
+          const complexUuid = idMap.get(kaptCode);
+          if (complexUuid) {
+            const persisted = await persistEnrichedRows(
+              supabase,
+              complexUuid,
+              histRes.ok ? histRes.data : [],
+              fundRes.ok ? fundRes.data : [],
+            );
+            histRowsInserted += persisted.hist;
+            fundRowsUpserted += persisted.fund;
+          }
         }
       } catch (err: any) {
         // 단지별 실패는 무시하고 다음으로
@@ -331,12 +357,90 @@ async function enrichAndScore(
   console.log(`    hist     — OK ${stats.histOk} / FAIL ${stats.histFail} / HAS_ITEMS ${stats.histHasItems}`);
   console.log(`    fund     — OK ${stats.fundOk} / FAIL ${stats.fundFail} / HAS_ITEMS ${stats.fundHasItems}`);
   console.log(`    추출 결과 — builtYear ${stats.builtFound} / lastWaterproof ${stats.wpFound} / fundBalance ${stats.fundFound}`);
+  console.log(`    자식 테이블 — maintenance_history insert ${histRowsInserted} / maintenance_funds upsert ${fundRowsUpserted}`);
   if (sampleErrors.length) {
     console.log('  [샘플 에러 (최대 12건)]');
     for (const e of sampleErrors) console.log(`    - ${e}`);
   }
 
   return updated;
+}
+
+// ============================================================
+// 보강 단계 — maintenance_history / maintenance_funds 적재
+//
+// maintenance_history:
+//   - unique 제약이 없어 멱등성 확보를 위해 단지별 기존 행 DELETE 후 INSERT.
+//   - work_year/work_type 둘 다 null 인 의미 없는 행은 거름.
+//
+// maintenance_funds:
+//   - UNIQUE(complex_id, year_month) 가 있어 upsert(onConflict) 로 깔끔.
+// ============================================================
+async function persistEnrichedRows(
+  supabase: SupabaseClient,
+  complexUuid: string,
+  hist: MaintenanceHistoryRaw[],
+  fund: MaintenanceFundRaw[],
+): Promise<{ hist: number; fund: number }> {
+  let histCount = 0;
+  let fundCount = 0;
+
+  if (hist.length) {
+    const histRows = hist
+      .map((h) => {
+        const yearNum = Number(h.workYear);
+        const amountNum = Number(h.workAmount);
+        return {
+          complex_id: complexUuid,
+          work_type: h.workType != null && String(h.workType).trim().length > 0
+            ? String(h.workType).trim().slice(0, 200)
+            : null,
+          work_year: Number.isFinite(yearNum) && yearNum > 1900 ? yearNum : null,
+          work_amount: Number.isFinite(amountNum) ? amountNum : null,
+          is_waterproof: !!h.is_waterproof,
+          source: 'public_api',
+        };
+      })
+      .filter((r) => r.work_type || r.work_year);
+
+    if (histRows.length) {
+      // 단지 단위 멱등성: 기존 행 삭제 후 새로 insert
+      await supabase.from('maintenance_history').delete().eq('complex_id', complexUuid);
+      const { error } = await supabase.from('maintenance_history').insert(histRows);
+      if (!error) histCount = histRows.length;
+    }
+  }
+
+  if (fund.length) {
+    const fundRows = fund
+      .map((f) => {
+        // yearMonth 정규화 — 'YYYYMM' 또는 'YYYY-MM' 모두 'YYYY-MM' 로
+        const ym = String(f.yearMonth ?? '').trim();
+        const normYm = /^\d{6}$/.test(ym)
+          ? `${ym.slice(0, 4)}-${ym.slice(4, 6)}`
+          : /^\d{4}-\d{2}$/.test(ym)
+            ? ym
+            : null;
+        const bal = Number(f.fundBalance);
+        const monthly = Number(f.monthlyAmount);
+        return {
+          complex_id: complexUuid,
+          year_month: normYm,
+          fund_balance: Number.isFinite(bal) ? bal : null,
+          monthly_amount: Number.isFinite(monthly) ? monthly : null,
+        };
+      })
+      .filter((r) => r.year_month);
+
+    if (fundRows.length) {
+      const { error } = await supabase
+        .from('maintenance_funds')
+        .upsert(fundRows, { onConflict: 'complex_id,year_month' });
+      if (!error) fundCount = fundRows.length;
+    }
+  }
+
+  return { hist: histCount, fund: fundCount };
 }
 
 // ============================================================
