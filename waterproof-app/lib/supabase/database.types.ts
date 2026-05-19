@@ -111,6 +111,48 @@ export interface ComplexPredictionView {
 }
 
 // ============================================================
+// 관심단지 영업 추적 (사용자별)
+// ============================================================
+export type SalesTrackingStatus =
+  | "interested"  // 관심
+  | "contacted"   // 연락중
+  | "meeting"     // 미팅예정/진행
+  | "proposed"    // 제안완료
+  | "won"         // 수주
+  | "lost"        // 실패
+  | "on_hold";    // 보류
+
+export type SalesTrackingPriority = "high" | "normal" | "low";
+
+export interface SalesTracking {
+  id: string;
+  user_id: string;
+  complex_id: string;
+  status: SalesTrackingStatus;
+  priority: SalesTrackingPriority;
+  last_contact_at: string | null;
+  next_action_at: string | null;
+  memo: string | null;
+  closed_at: string | null;
+  contract_amount: number | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SalesTrackingWithComplexView extends SalesTracking {
+  complex_name: string;
+  complex_address: string | null;
+  complex_sido: string | null;
+  complex_sigungu: string | null;
+  complex_built_year: number | null;
+  complex_households: number | null;
+  complex_phone: string | null;
+  complex_management_type: string | null;
+  prediction_score: number;
+  expected_order_year: number | null;
+}
+
+// ============================================================
 // Supabase Database 타입 (supabase gen 표준 구조)
 // ============================================================
 export interface Database {
@@ -152,10 +194,20 @@ export interface Database {
         Update: Partial<Proposal>;
         Relationships: [];
       };
+      sales_tracking: {
+        Row: SalesTracking;
+        Insert: Pick<SalesTracking, "user_id" | "complex_id"> & Partial<SalesTracking>;
+        Update: Partial<SalesTracking>;
+        Relationships: [];
+      };
     };
     Views: {
       complex_predictions: {
         Row: ComplexPredictionView;
+        Relationships: [];
+      };
+      sales_tracking_with_complex: {
+        Row: SalesTrackingWithComplexView;
         Relationships: [];
       };
     };

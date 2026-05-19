@@ -34,6 +34,15 @@ import { isWaterproofWork } from "@/lib/kapt-api";
 import { extractLastWorkByCategory } from "@/lib/work-categories";
 import { RecommendedWorkSpectrum } from "@/components/complexes/RecommendedWorkSpectrum";
 import { ComplexSatelliteView } from "@/components/complexes/ComplexSatelliteView";
+import { TrackingStar } from "@/components/tracking/TrackingStar";
+import { StatusSelect, PrioritySelect } from "@/components/tracking/StatusBadge";
+import {
+  MemoEditor,
+  NextActionInput,
+  LastContactInput,
+  LogContactNowButton,
+} from "@/components/tracking/TrackingDetails";
+import type { SalesTracking } from "@/lib/supabase/database.types";
 
 export const revalidate = 60;
 
@@ -47,7 +56,7 @@ export default async function ComplexDetailPage({
   const { id } = await Promise.resolve(params);
   const supabase = await createClient();
 
-  const [complexRes, historyRes, fundsRes, bidsRes] = await Promise.all([
+  const [complexRes, historyRes, fundsRes, bidsRes, trackingRes] = await Promise.all([
     supabase.from("complexes").select("*").eq("id", id).maybeSingle(),
     supabase.from("maintenance_history").select("*").eq("complex_id", id)
       .order("work_year", { ascending: false }).limit(20),
@@ -55,9 +64,13 @@ export default async function ComplexDetailPage({
       .order("year_month", { ascending: false }).limit(12),
     supabase.from("bid_announcements").select("*").eq("complex_id", id)
       .order("announced_at", { ascending: false }).limit(5),
+    // RLS 로 본인 행만 반환 — maybeSingle 로 0 또는 1건
+    supabase.from("sales_tracking").select("*").eq("complex_id", id).maybeSingle(),
   ]);
 
   if (!complexRes.data) notFound();
+
+  const tracking = (trackingRes.data ?? null) as SalesTracking | null;
 
   type ComplexRow = {
     id: string; name: string; address: string | null;
@@ -147,6 +160,7 @@ export default async function ComplexDetailPage({
           <h1 className="ml-1 truncate text-base font-bold text-on-surface">단지 상세 분석</h1>
         </div>
         <div className="flex items-center gap-1">
+          <TrackingStar complexId={c.id} initialTracked={tracking != null} />
           <button
             type="button"
             className="flex items-center justify-center rounded-full p-2 transition-all hover:bg-slate-100 active:scale-90"
@@ -206,6 +220,9 @@ export default async function ComplexDetailPage({
             </div>
           </div>
         </section>
+
+        {/* ── 관심단지 영업 추적 패널 ─────────────────────── */}
+        <SalesTrackingPanel complexId={c.id} tracking={tracking} />
 
         {/* ── 단지 기본 정보 카드 ─────────────────────────── */}
         <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
@@ -533,4 +550,77 @@ function buildSummary(input: {
     highlight: "발주 가능성이 매우 높은",
     after: " 단지입니다.",
   };
+}
+
+// ============================================================
+// 관심단지 영업 추적 패널
+//
+// - 추적 중이 아닐 때: 추가 CTA 카드 (TrackingStar variant=detail)
+// - 추적 중일 때: 상태/우선순위/일정/메모 인라인 편집 UI
+// ============================================================
+import { Target as TargetIcon } from "lucide-react";
+
+function SalesTrackingPanel({
+  complexId,
+  tracking,
+}: {
+  complexId: string;
+  tracking: SalesTracking | null;
+}) {
+  if (!tracking) {
+    return (
+      <section className="rounded-2xl border border-dashed border-amber-200 bg-amber-50/40 p-5">
+        <div className="flex items-start gap-3">
+          <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-amber-100">
+            <TargetIcon size={18} className="text-amber-600" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <h3 className="text-base font-bold text-on-surface">관심단지로 추가</h3>
+            <p className="mt-0.5 text-xs leading-relaxed text-on-surface-var">
+              영업 단계, 우선순위, 다음 액션 일정을 따로 관리할 수 있습니다.{" "}
+              <Link href="/tracking" className="font-semibold text-accent hover:underline">
+                영업추적 페이지
+              </Link>
+              에서 한 번에 확인하세요.
+            </p>
+            <div className="mt-3">
+              <TrackingStar complexId={complexId} initialTracked={false} variant="detail" />
+            </div>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  return (
+    <section className="overflow-hidden rounded-2xl border border-amber-200 bg-white shadow-sm">
+      <div className="flex items-center justify-between gap-2 border-b border-slate-100 bg-amber-50/40 px-4 py-3">
+        <div className="flex items-center gap-2">
+          <TargetIcon size={16} className="text-amber-600" />
+          <h3 className="text-sm font-bold text-on-surface">영업 추적</h3>
+        </div>
+        <Link
+          href="/tracking"
+          className="text-[11px] font-semibold text-accent hover:underline"
+        >
+          전체 보기 →
+        </Link>
+      </div>
+
+      <div className="space-y-3 p-4">
+        <div className="flex flex-wrap items-center gap-2">
+          <StatusSelect trackingId={tracking.id} initial={tracking.status} />
+          <PrioritySelect trackingId={tracking.id} initial={tracking.priority} />
+          <LogContactNowButton trackingId={tracking.id} />
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <NextActionInput trackingId={tracking.id} initial={tracking.next_action_at} />
+          <LastContactInput trackingId={tracking.id} initial={tracking.last_contact_at} />
+        </div>
+
+        <MemoEditor trackingId={tracking.id} initial={tracking.memo} rows={3} />
+      </div>
+    </section>
+  );
 }

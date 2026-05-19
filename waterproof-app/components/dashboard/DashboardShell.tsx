@@ -21,6 +21,7 @@ import {
   User,
   LogOut,
   Search,
+  Target,
   type LucideIcon,
 } from "lucide-react";
 import { signOut } from "@/app/(auth)/login/actions";
@@ -34,11 +35,12 @@ interface NavItem {
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { href: "/dashboard",  label: "대시보드", shortLabel: "Dashboard", icon: LayoutDashboard },
-  { href: "/complexes",  label: "단지 목록", shortLabel: "Complex",   icon: Building2 },
-  { href: "/proposals",  label: "제안서",   shortLabel: "Proposal",  icon: FileText },
-  { href: "/alerts",     label: "알림",     shortLabel: "Alerts",    icon: Bell },
-  { href: "/settings",   label: "설정",     shortLabel: "Settings",  icon: Settings },
+  { href: "/dashboard",  label: "대시보드",   shortLabel: "Dashboard", icon: LayoutDashboard },
+  { href: "/complexes",  label: "단지 목록",   shortLabel: "Complex",   icon: Building2 },
+  { href: "/tracking",   label: "영업추적",   shortLabel: "Tracking",  icon: Target },
+  { href: "/proposals",  label: "제안서",     shortLabel: "Proposal",  icon: FileText },
+  { href: "/alerts",     label: "알림",       shortLabel: "Alerts",    icon: Bell },
+  { href: "/settings",   label: "설정",       shortLabel: "Settings",  icon: Settings },
 ];
 
 export interface DashboardShellProps {

@@ -15,6 +15,7 @@ import { ComplexFilters } from '@/components/complexes/ComplexFilters';
 import { PredictionScore } from '@/components/complexes/PredictionScore';
 import { Pagination } from '@/components/complexes/Pagination';
 import { RowCheckbox, SelectionFAB } from '@/components/complexes/selection';
+import { TrackingStar } from '@/components/tracking/TrackingStar';
 import { SCORE_TIERS, nextOrderYearFromStored } from '@/lib/prediction';
 import { predictAllCategories, WORK_CATEGORIES } from '@/lib/work-categories';
 
@@ -103,6 +104,21 @@ export default async function ComplexesPage({
   const ids = rows.map((r) => r.id);
   const fundMap = new Map<string, number>();
   const lastWaterproofMap = new Map<string, number>();
+  // 현재 사용자의 영업 추적 등록 여부 (별표)
+  const trackedIds = new Set<string>();
+
+  if (ids.length > 0) {
+    // 영업 추적 여부 — 본인 행만 RLS 로 자동 필터
+    const { data: trackingRows } = await supabase
+      .from('sales_tracking')
+      .select('complex_id')
+      .in('complex_id', ids);
+    if (trackingRows) {
+      for (const t of trackingRows as Array<{ complex_id: string }>) {
+        trackedIds.add(t.complex_id);
+      }
+    }
+  }
 
   if (ids.length > 0) {
     // 충당금 — 단지별 최신 month 의 잔액 1건씩
@@ -176,6 +192,7 @@ export default async function ComplexesPage({
                     index={i}
                     fundBalance={fundMap.get(c.id) ?? null}
                     lastWaterproofYear={lastWaterproofMap.get(c.id) ?? null}
+                    tracked={trackedIds.has(c.id)}
                   />
                 ))}
               </tbody>
@@ -234,6 +251,7 @@ function ComplexRowDesktop({
   index,
   fundBalance,
   lastWaterproofYear,
+  tracked,
 }: {
   c: {
     id: string; name: string; address: string | null; built_year: number | null;
@@ -245,6 +263,7 @@ function ComplexRowDesktop({
   index: number;
   fundBalance: number | null;
   lastWaterproofYear: number | null;
+  tracked: boolean;
 }) {
   const zebra = index % 2 === 0 ? 'bg-white' : 'bg-slate-50/60';
   const currentYear = new Date().getFullYear();
@@ -326,9 +345,12 @@ function ComplexRowDesktop({
         'hover:bg-blue-50/40',
       ].join(' ')}
     >
-      {/* 선택 체크박스 — 엑셀 다운로드용 */}
+      {/* 선택 체크박스 — 엑셀 다운로드용 + 영업 추적 별표 */}
       <td className="px-3 py-3 align-top">
-        <RowCheckbox complexId={c.id} />
+        <div className="flex flex-col items-center gap-1">
+          <RowCheckbox complexId={c.id} />
+          <TrackingStar complexId={c.id} initialTracked={tracked} />
+        </div>
       </td>
 
       {/* 단지명 + 주소 + 칩들 + 관리소장 전화 */}
