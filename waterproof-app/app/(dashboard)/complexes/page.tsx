@@ -331,12 +331,12 @@ function ComplexRowDesktop({
             </div>
           )}
         </Link>
-        {/* 관리소장 전화 — 클릭 시 다이얼 */}
+        {/* 관리소장 전화 — 클릭 시 다이얼 (Link 와 형제 관계라 propagation 제어 불필요;
+            Server Component 에서 onClick 을 prop 으로 넘기면 Next.js 가 거부함) */}
         {c.phone && (
           <a
             href={`tel:${c.phone.replace(/[^0-9+]/g, '')}`}
             className="mt-1.5 inline-flex items-center gap-1 text-[11px] font-medium text-accent hover:underline"
-            onClick={(e) => e.stopPropagation()}
           >
             📞 {c.phone}
           </a>
