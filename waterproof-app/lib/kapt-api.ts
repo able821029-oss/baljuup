@@ -90,10 +90,19 @@ export interface ComplexRaw {
 }
 
 export interface MaintenanceHistoryRaw {
-  workType?: string | null;
-  workYear?: string | number | null;
+  // 정규화된 표준 필드 (fetchMaintenanceHistory 가 채움)
+  workType?: string | null;            // 공종 분류 텍스트 — subject + parentName + parentParentName 합성
+  workYear?: string | number | null;   // 시공 연도 (YYYY 숫자)
   workAmount?: string | number | null;
   is_waterproof?: boolean;
+
+  // K-apt API 원본 필드 (참고용 — 응답 raw 키)
+  subject?: string;             // 공사 제목 ("방수공사", "부분수리")
+  parentName?: string;          // 중분류
+  parentParentName?: string;    // 대분류
+  mnthEtime?: string;           // 시공일 'YYYY-MM-DD'
+  costType?: string;            // 비용 유형 ('장기수선충당금' 등)
+
   [k: string]: unknown;
 }
 
@@ -297,20 +306,38 @@ export async function fetchMaintenanceHistory(
   const res = await fetchWithRetry<any>(url);
   if (!res.ok) return res;
 
-  // 공공데이터포털 응답은 필드명이 짧은 약어인 경우가 많음.
-  // workType / workYear / workAmount 외에도 wrkType / cdName / wrkYear / wrkAmount / wrkSj / repairCntnts 등 다양한 변형을 시도.
+  // 실제 K-apt V2 응답 raw 키 (진단으로 확인):
+  //   { costType, parentParentName, parentName, subject, year, mnthEtime, useYear, useDate, ... }
+  // 다른 endpoint/버전 대비 추가 alias 도 시도.
   const items = extractItems<Record<string, unknown>>(res.data).map((raw) => {
-    const workType =
-      pickStr(raw, 'workType', 'wrkType', 'cdName', 'wrkSj', 'repairCntnts', 'repairSj', 'codeName', 'codeMgr', 'workNm');
+    // workType — 분류 키워드 매칭용. 실제 응답은 subject/parentName/parentParentName 셋이 분류 정보.
+    // alias 우선순위: 명시적 workType > 합성(parentParentName+parentName+subject) > 기타 alias
+    const explicitType = pickStr(raw, 'workType', 'wrkType', 'cdName', 'wrkSj', 'repairCntnts', 'repairSj', 'codeName', 'workNm');
+    const composedParts = [
+      pickStr(raw, 'parentParentName'),
+      pickStr(raw, 'parentName'),
+      pickStr(raw, 'subject'),
+    ].filter((s): s is string => !!s && s !== '기타');
+    const composedType = composedParts.length > 0 ? composedParts.join(' ') : null;
+    const workType = explicitType ?? composedType
+      ?? pickStr(raw, 'subject', 'parentName', 'parentParentName');
+
+    // workYear — 'mnthEtime' (YYYY-MM-DD) 가 실제 응답의 시공일. 그 외 alias 도 시도.
+    const dateStr = pickStr(raw, 'mnthEtime', 'cntrctYmd', 'wrkYmd', 'completeDate', 'cntrctEnd');
+    const yearFromDate = dateStr && /^\d{4}/.test(dateStr) ? Number(dateStr.slice(0, 4)) : NaN;
     const workYear =
-      pickIntFromAny(raw, 'workYear', 'wrkYear', 'repairYr', 'repairYear', 'yr', 'cntrctEnd', 'cntrctYmd', 'wrkYmd', 'completeDate');
+      (Number.isFinite(yearFromDate) && yearFromDate > 1900 ? yearFromDate : null)
+      ?? pickIntFromAny(raw, 'workYear', 'wrkYear', 'repairYr', 'repairYear', 'yr');
+    // 응답의 'year' 필드는 0이 많아 후순위로
+    const workYearFinal = workYear ?? pickIntFromAny(raw, 'year');
+
     const workAmount =
       pickIntFromAny(raw, 'workAmount', 'wrkAmount', 'contractAmount', 'ctrtAmt', 'amount', 'wrkAmt');
 
     const item: MaintenanceHistoryRaw = {
       ...raw,
       workType: workType ?? null,
-      workYear: workYear ?? null,
+      workYear: workYearFinal ?? null,
       workAmount: workAmount ?? null,
       is_waterproof: isWaterproofWork(workType ?? ''),
     };
