@@ -1,0 +1,107 @@
+# PR 자동 라벨링 룰 — 변경된 파일 경로를 기반으로 PR 에 area/* 라벨 자동 부착
+#
+# 동작 방식 (actions/labeler@v5):
+#   - 한 PR 이 여러 영역을 건드리면 여러 라벨이 동시에 붙음
+#   - 매 push 마다 라벨 재계산 (변경 영역이 줄어들면 라벨도 자동 제거)
+#
+# 라벨 이름은 GitHub 에 미리 만들어둘 필요 없음 — labeler 가 자동 생성.
+
+"area/app":
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'waterproof-app/app/**'
+
+"area/api":
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'waterproof-app/app/api/**'
+          - 'waterproof-app/app/**/route.ts'
+
+"area/auth":
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'waterproof-app/app/(auth)/**'
+          - 'waterproof-app/app/auth/**'
+
+"area/dashboard":
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'waterproof-app/app/(dashboard)/**'
+
+"area/components":
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'waterproof-app/components/**'
+
+"area/lib":
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'waterproof-app/lib/**'
+
+"area/db":
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'waterproof-app/supabase/**'
+          - '**/*.sql'
+
+"area/prediction":
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'waterproof-app/lib/prediction.ts'
+          - 'waterproof-app/lib/work-categories.ts'
+          - 'waterproof-app/scripts/rescore.ts'
+          - 'waterproof-app/scripts/sim-prediction.ts'
+
+"area/billing":
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'waterproof-app/app/(dashboard)/billing/**'
+          - 'waterproof-app/app/billing/**'
+          - 'waterproof-app/app/api/webhooks/toss/**'
+          - 'waterproof-app/components/billing/**'
+          - 'waterproof-app/lib/toss*.ts'
+          - 'waterproof-app/scripts/monthly-billing.ts'
+
+"area/alimtalk":
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'waterproof-app/lib/kakao-alimtalk.ts'
+          - 'waterproof-app/app/api/alerts/**'
+          - 'waterproof-app/scripts/send-alimtalks.ts'
+
+"area/scripts":
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'waterproof-app/scripts/**'
+
+"area/landing":
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'landing/**'
+          - 'landing_*.html'
+
+"area/content":
+  - changed-files:
+      - any-glob-to-any-file:
+          - '_content-ops/**'
+          - 'sns_*.md'
+          - 'kakao_content.md'
+
+"area/ci":
+  - changed-files:
+      - any-glob-to-any-file:
+          - '.github/**'
+
+"area/docs":
+  - changed-files:
+      - all-globs-to-all-files:
+          - '**/*.md'
+          - '!_content-ops/**'
+
+"dependencies":
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'waterproof-app/package.json'
+          - 'waterproof-app/package-lock.json'
+          - 'landing/package.json'
+          - 'landing/package-lock.json'

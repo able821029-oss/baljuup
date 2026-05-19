@@ -12,12 +12,15 @@
 | `monthly-billing.yml` | 매일 | 01:00 | 토스 정기결제 청구 (`next_billing_at` 도래 구독만, 멱등) |
 | `lighthouse.yml` | 매일 | 04:00 | Core Web Vitals 측정 (운영 사이트) |
 
-## 코드 품질 & 의존성
+## 코드 품질 & 보안
 
 | 항목 | 트리거 | 용도 |
 |---|---|---|
 | `ci.yml` | push / PR | TypeScript 컴파일 + ESLint 검증 (시크릿 불필요) |
-| `dependabot.yml` | 주간 | npm + GH Actions 의존성 자동 업데이트 PR |
+| `codeql.yml` | push / PR / 매주 일 03:00 | GitHub CodeQL 보안 정적 분석 (XSS/injection 등) |
+| `bundle-size.yml` | PR | 클라이언트 JS 번들 크기 main 대비 변화 PR 코멘트 |
+| `pr-label.yml` + `labeler.yml` | PR | 변경 파일 경로 → area/* 라벨 자동 부착 |
+| `dependabot.yml` | 주간 / 월간 | npm + GH Actions 의존성 자동 업데이트 PR |
 
 ## 1. 필수 GitHub Secrets
 

@@ -1,0 +1,73 @@
+name: Bundle Size
+
+# PR 의 클라이언트 JS 번들 크기 변화를 main 기준으로 비교해 PR 코멘트.
+# 점진적 번들 비대화를 조기에 발견 (특히 ProposalPDF 같은 큰 lib 추가 시).
+#
+# 임계: 자동 차단 없음. 수치만 표시 — 리뷰어가 판단.
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'waterproof-app/app/**'
+      - 'waterproof-app/components/**'
+      - 'waterproof-app/lib/**'
+      - 'waterproof-app/package.json'
+      - 'waterproof-app/package-lock.json'
+      - 'waterproof-app/next.config.mjs'
+      - 'waterproof-app/tailwind.config.ts'
+
+permissions:
+  contents: read
+  pull-requests: write
+
+# 같은 PR 에 새 push 가 들어오면 이전 측정 취소
+concurrency:
+  group: bundle-size-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+# 빌드 실행에 필요한 환경변수 — Vercel 실제 값 아닌 빌드용 더미.
+# (next build 가 process.env 참조하는 모듈을 import 할 때 undefined 로 깨지지 않도록)
+env:
+  NEXT_PUBLIC_SUPABASE_URL: 'https://placeholder.supabase.co'
+  NEXT_PUBLIC_SUPABASE_ANON_KEY: 'placeholder-anon-key'
+  NEXT_PUBLIC_URL: 'https://baljuup.vercel.app'
+  NEXT_PUBLIC_KAKAO_MAP_KEY: 'placeholder'
+  NEXT_PUBLIC_TOSS_CLIENT_KEY: 'test_ck_placeholder'
+
+jobs:
+  size:
+    name: 번들 크기 비교
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: waterproof-app
+
+    steps:
+      - name: 체크아웃
+        uses: actions/checkout@v4
+
+      - name: Node.js 22 설치
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: waterproof-app/package-lock.json
+
+      - name: 번들 크기 측정 + 비교
+        uses: preactjs/compressed-size-action@v2
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          # cwd 가 root 기준이라 모노레포 구조 명시
+          cwd: ./waterproof-app
+          # next build 실행
+          build-script: 'build'
+          # 비교 대상 — 클라이언트가 다운로드하는 정적 청크
+          pattern: './.next/static/**/*.{js,css}'
+          # next/cache 같은 빌드 산출물은 사용자 다운로드 대상 아님
+          exclude: '{./.next/cache/**,./.next/server/**}'
+          # 압축 방식 — gzip (실제 CDN 서빙 방식과 동일)
+          compression: 'gzip'
+          # 변경 없음 메시지 숨김 (스팸 방지)
+          minimum-change-threshold: 100  # 100 bytes 미만 변화는 코멘트 안 함

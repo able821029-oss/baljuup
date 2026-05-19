@@ -1,0 +1,59 @@
+name: CodeQL Security Scan
+
+# GitHub 무료 보안 분석 — JavaScript/TypeScript 정적 분석으로
+# XSS, prototype pollution, hardcoded secret, prompt injection 등 탐지.
+#
+# 결과는 Security 탭 → Code scanning 에 표시. 심각도별 정렬 가능.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'waterproof-app/**'
+      - 'landing/**'
+      - '!**/*.md'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'waterproof-app/**'
+      - 'landing/**'
+      - '!**/*.md'
+  schedule:
+    # 매주 일요일 03:00 KST = 토요일 18:00 UTC — 새로운 CodeQL 룰셋 정기 적용
+    - cron: '0 18 * * 6'
+
+# 같은 ref 의 이전 스캔이 진행 중이면 취소 (PR 빠르게 갱신될 때)
+concurrency:
+  group: codeql-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  analyze:
+    name: ${{ matrix.language }} 분석
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      security-events: write   # SARIF 업로드용
+      contents: read
+      actions: read
+
+    strategy:
+      fail-fast: false
+      matrix:
+        language: ['javascript-typescript']
+
+    steps:
+      - name: 체크아웃
+        uses: actions/checkout@v4
+
+      - name: CodeQL 초기화
+        uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.language }}
+          # security-extended: 추가 보안 룰셋 활성화 (기본 + 더 엄격)
+          queries: security-extended
+
+      - name: 분석 실행
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: '/language:${{ matrix.language }}'
