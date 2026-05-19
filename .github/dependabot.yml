@@ -1,0 +1,86 @@
+# Dependabot — 의존성 자동 업데이트 PR
+#
+# 동작:
+#   - 매주 월요일 09:00 KST 에 새로운 minor / patch 업데이트 확인
+#   - patch + minor 는 그룹 PR 로 묶어서 단일 PR 로 생성 (PR 수 폭증 방지)
+#   - major 업데이트는 개별 PR (호환성 검토 필요)
+#
+# 보안 알림 (Dependabot security alerts) 은 별도이며 GitHub 가 자동 처리.
+
+version: 2
+updates:
+  # ============================================================
+  # 1) Node 패키지 (waterproof-app)
+  # ============================================================
+  - package-ecosystem: "npm"
+    directory: "/waterproof-app"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Asia/Seoul"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "npm"
+    commit-message:
+      prefix: "chore(deps)"
+      prefix-development: "chore(deps-dev)"
+    # patch + minor 그룹화 (PR 1개로 묶음)
+    groups:
+      production-minor-patch:
+        dependency-type: "production"
+        update-types:
+          - "minor"
+          - "patch"
+        exclude-patterns:
+          # 메이저 라이브러리는 그룹에서 제외 — 개별 PR 로 신중히 검토
+          - "next"
+          - "react"
+          - "react-dom"
+          - "@supabase/*"
+          - "@anthropic-ai/sdk"
+      development-minor-patch:
+        dependency-type: "development"
+        update-types:
+          - "minor"
+          - "patch"
+    # major 업데이트는 자동 PR 생성 (개별)
+    versioning-strategy: "increase"
+
+  # ============================================================
+  # 2) Node 패키지 (landing — 사용 중이면 보강)
+  # ============================================================
+  - package-ecosystem: "npm"
+    directory: "/landing"
+    schedule:
+      interval: "monthly"
+    open-pull-requests-limit: 2
+    labels:
+      - "dependencies"
+      - "landing"
+    commit-message:
+      prefix: "chore(landing-deps)"
+    # landing 디렉토리가 없으면 Dependabot 이 자동으로 무시 — 안전
+
+  # ============================================================
+  # 3) GitHub Actions 워크플로우의 actions 버전
+  # ============================================================
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Asia/Seoul"
+    open-pull-requests-limit: 3
+    labels:
+      - "dependencies"
+      - "ci"
+    commit-message:
+      prefix: "chore(ci)"
+    groups:
+      actions-minor-patch:
+        update-types:
+          - "minor"
+          - "patch"

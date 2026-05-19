@@ -1,6 +1,8 @@
 # GitHub Actions — 발주Up 자동화 워크플로우
 
-저장소에 등록된 cron 4개. 모두 Asia/Seoul 시간 기준이며 수동 실행도 가능합니다.
+저장소에 등록된 워크플로우들. 모두 Asia/Seoul 시간 기준.
+
+## 정기 cron
 
 | 워크플로우 | 주기 | 시간 (KST) | 용도 |
 |---|---|---|---|
@@ -8,6 +10,14 @@
 | `weekly-rescore.yml` | 매주 화 | 03:00 | 예측 점수 재계산 (수집 다음날) |
 | `daily-alimtalk.yml` | 매일 | 09:00 | 어제 신규 입찰공고 → 알림톡 발송 |
 | `monthly-billing.yml` | 매일 | 01:00 | 토스 정기결제 청구 (`next_billing_at` 도래 구독만, 멱등) |
+| `lighthouse.yml` | 매일 | 04:00 | Core Web Vitals 측정 (운영 사이트) |
+
+## 코드 품질 & 의존성
+
+| 항목 | 트리거 | 용도 |
+|---|---|---|
+| `ci.yml` | push / PR | TypeScript 컴파일 + ESLint 검증 (시크릿 불필요) |
+| `dependabot.yml` | 주간 | npm + GH Actions 의존성 자동 업데이트 PR |
 
 ## 1. 필수 GitHub Secrets
 

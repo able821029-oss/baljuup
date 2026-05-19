@@ -1,0 +1,79 @@
+name: Lighthouse
+
+# 운영 사이트의 Core Web Vitals 정기 측정.
+# main 머지 후 + 매일 새벽 자동 측정 + 수동 트리거 가능.
+#
+# 측정 대상: 공개 페이지만 (로그인 필요 페이지는 측정 불가).
+# Hobby 플랜이면 가끔 spike 가 있으니 평균 추이로 보세요.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      # 실제 렌더링에 영향을 주는 파일이 바뀐 경우만 (md/yml/landing 변경엔 스킵)
+      - 'waterproof-app/app/**'
+      - 'waterproof-app/components/**'
+      - 'waterproof-app/lib/**'
+      - 'waterproof-app/public/**'
+      - 'waterproof-app/next.config.mjs'
+      - 'waterproof-app/tailwind.config.ts'
+      - 'waterproof-app/package.json'
+  schedule:
+    - cron: '0 19 * * *'  # 매일 04:00 KST = 19:00 UTC (전날)
+  workflow_dispatch:
+    inputs:
+      url:
+        description: '추가로 측정할 URL (단일)'
+        required: false
+        default: ''
+
+permissions:
+  contents: read
+
+# 같은 시점에 여러 push 가 동시에 들어와도 한 번만 실행
+concurrency:
+  group: lighthouse
+  cancel-in-progress: true
+
+jobs:
+  audit:
+    name: Core Web Vitals 측정
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: 체크아웃
+        uses: actions/checkout@v4
+
+      # push 트리거 시: Vercel 배포 완료까지 잠시 대기
+      # (Hobby 플랜 Vercel 빌드는 보통 1~3분; main 머지 ~ 빌드 ~ CDN 반영을 대비)
+      - name: Vercel 배포 대기 (90초)
+        if: github.event_name == 'push'
+        run: sleep 90
+
+      - name: Lighthouse 실행
+        uses: treosh/lighthouse-ci-action@v12
+        with:
+          urls: |
+            https://baljuup.vercel.app/
+            https://baljuup.vercel.app/login
+            https://baljuup.vercel.app/signup
+            ${{ github.event.inputs.url }}
+          uploadArtifacts: true
+          temporaryPublicStorage: true   # 결과를 Lighthouse CI 임시 저장소에 업로드 (3일 보관)
+          configPath: ./.github/lighthouserc.json
+        continue-on-error: true  # 점수 미달이어도 워크플로우 자체는 성공 처리 (모니터링 목적)
+
+      - name: 측정 요약
+        if: always()
+        run: |
+          echo "### Lighthouse 측정 결과" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "- 실행 시각: $(TZ=Asia/Seoul date '+%Y-%m-%d %H:%M:%S KST')" >> "$GITHUB_STEP_SUMMARY"
+          echo "- 트리거: ${{ github.event_name }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- 측정 URL:" >> "$GITHUB_STEP_SUMMARY"
+          echo "  - https://baljuup.vercel.app/" >> "$GITHUB_STEP_SUMMARY"
+          echo "  - https://baljuup.vercel.app/login" >> "$GITHUB_STEP_SUMMARY"
+          echo "  - https://baljuup.vercel.app/signup" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "공개 리포트는 step 로그의 \`Storage Url\` 줄에서 확인 (3일 보관)." >> "$GITHUB_STEP_SUMMARY"

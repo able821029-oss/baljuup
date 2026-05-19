@@ -1,0 +1,59 @@
+name: CI
+
+# 모든 push 와 PR 에서 실행 — 빌드 깨지는 코드가 main 에 진입하기 전에 차단.
+# (cron 워크플로우들과 달리 시크릿 없이 동작, 모든 commit 에서 빠른 검증.)
+
+on:
+  push:
+    branches: [main]
+    # cron 워크플로우 파일만 바뀌었을 때는 CI 스킵
+    paths-ignore:
+      - '.github/README.md'
+      - 'landing/**'
+      - '**/*.md'
+      - '_content-ops/**'
+      - 'files/**'
+      - 'files (*)/**'
+      - 'public/**'
+      - '**.html'
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+# 같은 브랜치에서 새 push 가 들어오면 이전 진행 중인 CI 는 취소
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  typecheck:
+    name: 타입체크 + 린트
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: waterproof-app
+
+    steps:
+      - name: 체크아웃
+        uses: actions/checkout@v4
+
+      - name: Node.js 22 설치
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: waterproof-app/package-lock.json
+
+      - name: 의존성 설치
+        run: npm ci --no-audit --no-fund
+
+      - name: TypeScript 컴파일 체크
+        run: npx tsc --noEmit --pretty false
+
+      - name: ESLint
+        # next lint 가 경고를 에러로 격상하지 않으므로 별도로 --max-warnings 적용
+        run: npm run lint -- --max-warnings 50
+        continue-on-error: true  # 경고는 머지 차단 안 함 (점진 정리)
