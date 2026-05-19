@@ -43,7 +43,7 @@ jobs:
 
     steps:
       - name: 체크아웃
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       # push 트리거 시: Vercel 배포 완료까지 잠시 대기
       # (Hobby 플랜 Vercel 빌드는 보통 1~3분; main 머지 ~ 빌드 ~ CDN 반영을 대비)

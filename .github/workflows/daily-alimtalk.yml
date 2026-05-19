@@ -32,7 +32,7 @@ jobs:
 
     steps:
       - name: 체크아웃
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Node.js 22 설치
         uses: actions/setup-node@v4
