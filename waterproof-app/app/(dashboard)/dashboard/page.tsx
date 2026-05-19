@@ -18,28 +18,38 @@ import {
 import { createClient } from "@/lib/supabase/server";
 import { Logo } from "@/components/brand/Logo";
 
-export const revalidate = 60;
+// 쿠키 기반 인증 + 사용자별 데이터가 있어 ISR 캐싱 불가 → dynamic 명시
+export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
 
   // ── 사용자 + 프로필 조회 (히어로 액션 분기용) ────────────
-  const { data: { user } } = await supabase.auth.getUser();
-  const profileResp = user
-    ? await supabase
+  // 어떤 이유로든 실패하면 히어로는 안 보이고 나머지 대시보드는 정상 렌더되도록 격리.
+  let isTrialUser = false;
+  let hasRegions = false;
+  let companyName: string | null = null;
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      const { data } = await supabase
         .from("user_profiles")
         .select("company_name, plan, region")
         .eq("id", user.id)
-        .maybeSingle()
-    : { data: null };
-  const profile = (profileResp.data as unknown) as {
-    company_name: string | null;
-    plan: string;
-    region: string[] | null;
-  } | null;
-  const isTrialUser = profile?.plan === "trial";
-  const hasRegions = (profile?.region?.length ?? 0) > 0;
-  const companyName = profile?.company_name ?? null;
+        .maybeSingle();
+      const profile = (data as unknown) as {
+        company_name: string | null;
+        plan: string | null;
+        region: string[] | null;
+      } | null;
+      isTrialUser = profile?.plan === "trial";
+      hasRegions = (profile?.region?.length ?? 0) > 0;
+      companyName = profile?.company_name ?? null;
+    }
+  } catch (err) {
+    // 운영에서 디버깅 가능하도록 로그 — 페이지는 계속 렌더
+    console.error("[dashboard] user profile lookup failed:", err);
+  }
 
   // ── 병렬 조회 (기존 그대로) ─────────────────────────────
   const [
