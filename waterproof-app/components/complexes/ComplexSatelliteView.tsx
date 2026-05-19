@@ -1,13 +1,12 @@
 /**
- * 단지 위성 사진 뷰 — 카카오맵 JavaScript SDK SKYVIEW
+ * 단지 외관 뷰 — 카카오 로드뷰 우선 + 위성(SKYVIEW) fallback
  *
  * 동작:
- *   1) NEXT_PUBLIC_KAKAO_MAP_KEY 가 설정되어 있으면
- *      Script 태그로 카카오맵 SDK 동적 로딩 → 주소 geocoding →
- *      SKYVIEW(위성) 지도 + 마커 표시.
- *   2) 주소 geocoding 실패 시 단지명 키워드 검색으로 fallback.
- *   3) 키가 없거나 SDK 로드 실패 시 기존 어두운 placeholder 유지
- *      (네이버/카카오 외부 링크 버튼).
+ *   1) 주소/단지명으로 좌표 획득 (Geocoder → Places fallback)
+ *   2) RoadviewClient.getNearestPanoId(latlng, 80m) 로 가까운 파노라마 검색
+ *      - 있으면 로드뷰(실제 단지 외관 사진) 표시
+ *      - 없으면 SKYVIEW(위성) 으로 fallback
+ *   3) 키 없음 / SDK 로드 실패 시 placeholder + 외부 지도 링크
  *
  * 키 발급:
  *   https://developers.kakao.com → 내 애플리케이션 → JavaScript 키
@@ -40,6 +39,8 @@ export function ComplexSatelliteView({ name, address }: Props) {
   const [status, setStatus] = useState<"idle" | "loading" | "ready" | "failed">(
     apiKey ? "loading" : "idle",
   );
+  // 실제 표시 모드 — 로드뷰 사진이 있으면 'roadview', 없으면 'satellite' 로 fallback
+  const [viewMode, setViewMode] = useState<"roadview" | "satellite">("roadview");
 
   useEffect(() => {
     if (!sdkReady || !apiKey || !mapEl.current) return;
@@ -52,6 +53,16 @@ export function ComplexSatelliteView({ name, address }: Props) {
           Map: new (el: HTMLElement, opts: Record<string, unknown>) => unknown;
           Marker: new (opts: Record<string, unknown>) => unknown;
           MapTypeId: { SKYVIEW: unknown };
+          Roadview: new (el: HTMLElement) => {
+            setPanoId: (panoId: number, position: unknown) => void;
+          };
+          RoadviewClient: new () => {
+            getNearestPanoId: (
+              position: unknown,
+              radius: number,
+              cb: (panoId: number | null) => void,
+            ) => void;
+          };
           services: {
             Geocoder: new () => {
               addressSearch: (
@@ -93,15 +104,53 @@ export function ComplexSatelliteView({ name, address }: Props) {
         return;
       }
 
+      // 1차: 로드뷰(파노라마) 시도. 80m 반경에서 가장 가까운 panoId 검색.
+      // 없으면 위성(SKYVIEW) 으로 fallback.
       const draw = (lat: number, lng: number) => {
         const coords = new k.LatLng(lat, lng);
-        const map = new k.Map(target, {
-          center: coords,
-          level: 3,
-          mapTypeId: k.MapTypeId.SKYVIEW,
-        });
-        new k.Marker({ position: coords, map });
-        setStatus("ready");
+        try {
+          const client = new k.RoadviewClient();
+          client.getNearestPanoId(coords, 80, (panoId) => {
+            if (panoId) {
+              try {
+                const rv = new k.Roadview(target);
+                rv.setPanoId(panoId, coords);
+                setViewMode("roadview");
+                setStatus("ready");
+                return;
+              } catch {
+                // 로드뷰 인스턴스 생성 실패 → 위성 fallback 으로 진행
+              }
+            }
+            // panoId 없음 또는 로드뷰 실패 → SKYVIEW 폴백
+            try {
+              const map = new k.Map(target, {
+                center: coords,
+                level: 3,
+                mapTypeId: k.MapTypeId.SKYVIEW,
+              });
+              new k.Marker({ position: coords, map });
+              setViewMode("satellite");
+              setStatus("ready");
+            } catch {
+              setStatus("failed");
+            }
+          });
+        } catch {
+          // RoadviewClient 자체가 없는 환경 — 곧바로 위성
+          try {
+            const map = new k.Map(target, {
+              center: coords,
+              level: 3,
+              mapTypeId: k.MapTypeId.SKYVIEW,
+            });
+            new k.Marker({ position: coords, map });
+            setViewMode("satellite");
+            setStatus("ready");
+          } catch {
+            setStatus("failed");
+          }
+        }
       };
 
       const tryKeyword = () => {
@@ -178,7 +227,7 @@ export function ComplexSatelliteView({ name, address }: Props) {
             <div className="flex items-center gap-2">
               <ImageIcon size={16} className="text-white/80" />
               <p className="text-[11px] font-bold uppercase tracking-wide text-white/80">
-                단지 전경 / 위성 사진
+                단지 외관
               </p>
             </div>
             {!apiKey ? (
@@ -233,7 +282,7 @@ export function ComplexSatelliteView({ name, address }: Props) {
           <div className="pointer-events-none absolute left-3 top-3 z-10 flex items-center gap-1.5 rounded-md bg-black/55 px-2 py-1 backdrop-blur-sm">
             <ImageIcon size={12} className="text-white/80" />
             <span className="text-[10px] font-bold uppercase tracking-wide text-white/90">
-              단지 위성 사진
+              {viewMode === "roadview" ? "단지 외관 (로드뷰)" : "단지 위성 사진"}
             </span>
           </div>
           <div className="absolute bottom-3 right-3 z-10 flex flex-wrap items-center justify-end gap-2">

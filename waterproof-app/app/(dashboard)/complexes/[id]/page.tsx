@@ -400,7 +400,7 @@ export default async function ComplexDetailPage({
           )}
         />
 
-        {/* ── 단지 전경 / 위성 사진 — 카카오맵 SKYVIEW (키 없으면 placeholder) ── */}
+        {/* ── 단지 외관 — 카카오 로드뷰(실제 외관 사진) 우선, 없으면 위성 fallback ── */}
         <ComplexSatelliteView name={c.name} address={c.address} />
       </main>
 
