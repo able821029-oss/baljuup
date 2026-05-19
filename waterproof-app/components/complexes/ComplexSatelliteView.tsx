@@ -18,7 +18,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Script from "next/script";
-import { Image as ImageIcon, MapPin, Loader2 } from "lucide-react";
+import { Image as ImageIcon, MapPin, Loader2, Navigation } from "lucide-react";
 
 // 카카오 SDK 는 전역 window.kakao 로 노출됨.
 // 공식 타입 패키지가 없어 unknown 으로 받고 내부에서만 사용.
@@ -72,6 +72,15 @@ export function ComplexSatelliteView({ name, address }: Props) {
     };
 
     if (!w.kakao?.maps) {
+      if (process.env.NODE_ENV !== "production") {
+        // eslint-disable-next-line no-console
+        console.warn(
+          "[ComplexSatelliteView] window.kakao.maps 미정의 — SDK 로드 실패. " +
+            "원인 후보: (1) 잘못된 NEXT_PUBLIC_KAKAO_MAP_KEY, " +
+            "(2) Kakao Developers → 플랫폼 → Web 에 현재 도메인 미등록, " +
+            "(3) 네트워크 차단",
+        );
+      }
       setStatus("failed");
       return;
     }
@@ -130,6 +139,9 @@ export function ComplexSatelliteView({ name, address }: Props) {
   const query = `${name} ${address ?? ""}`.trim();
   const naverHref = `https://map.naver.com/p/search/${encodeURIComponent(query)}`;
   const kakaoHref = `https://map.kakao.com/?q=${encodeURIComponent(query)}`;
+  // 길찾기 — 검색 기반 (좌표 없이도 동작; 사용자 현재 위치는 카카오/네이버 앱이 자동 처리)
+  const naverDirHref = `https://map.naver.com/p/directions/-/-/${encodeURIComponent(query)}/place`;
+  const kakaoDirHref = `https://map.kakao.com/?sName=${encodeURIComponent("내 위치")}&eName=${encodeURIComponent(query)}`;
 
   // 키 없음 / SDK 실패 → placeholder
   const showFallback = !apiKey || status === "failed";
@@ -170,18 +182,28 @@ export function ComplexSatelliteView({ name, address }: Props) {
               </p>
             </div>
             {!apiKey ? (
-              <p className="max-w-[240px] text-[10px] leading-relaxed text-white/70">
-                <code className="rounded bg-white/10 px-1 py-0.5 text-[10px] text-white/90">
+              <p className="max-w-[260px] text-[10px] leading-relaxed text-white/70">
+                위성 지도를 활성화하려면{" "}
+                <code className="rounded bg-white/10 px-1 py-0.5 text-white/90">
                   NEXT_PUBLIC_KAKAO_MAP_KEY
-                </code>{" "}
-                환경변수를 설정하면 위성 지도가 자동 표시됩니다.
+                </code>
+                와 Kakao Developers → 플랫폼 → Web 도메인 등록이 필요합니다.
               </p>
             ) : (
-              <p className="text-[10px] leading-relaxed text-white/70">
-                해당 주소를 지도에서 찾지 못했습니다. 아래 외부 지도로 확인해주세요.
+              <p className="max-w-[260px] text-[10px] leading-relaxed text-white/70">
+                지도 로드 실패. 키가 올바르고 현재 도메인이 Kakao Developers 플랫폼에 등록되어 있는지 확인해주세요.
               </p>
             )}
             <div className="flex flex-wrap items-center justify-end gap-2">
+              <a
+                href={kakaoDirHref}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 rounded-lg bg-accent px-3 py-2 text-xs font-bold text-white shadow-md transition-all hover:bg-accent/90 active:scale-95"
+              >
+                <Navigation size={14} />
+                길찾기
+              </a>
               <a
                 href={naverHref}
                 target="_blank"
@@ -189,7 +211,7 @@ export function ComplexSatelliteView({ name, address }: Props) {
                 className="inline-flex items-center gap-1.5 rounded-lg bg-white/95 px-3 py-2 text-xs font-bold text-slate-800 shadow-md transition-all hover:bg-white active:scale-95"
               >
                 <MapPin size={14} className="text-emerald-600" />
-                네이버 지도
+                네이버
               </a>
               <a
                 href={kakaoHref}
@@ -198,7 +220,7 @@ export function ComplexSatelliteView({ name, address }: Props) {
                 className="inline-flex items-center gap-1.5 rounded-lg bg-white/95 px-3 py-2 text-xs font-bold text-slate-800 shadow-md transition-all hover:bg-white active:scale-95"
               >
                 <MapPin size={14} className="text-amber-500" />
-                카카오맵
+                카카오
               </a>
             </div>
           </div>
@@ -215,6 +237,15 @@ export function ComplexSatelliteView({ name, address }: Props) {
             </span>
           </div>
           <div className="absolute bottom-3 right-3 z-10 flex flex-wrap items-center justify-end gap-2">
+            <a
+              href={kakaoDirHref}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 rounded-lg bg-accent px-2.5 py-1.5 text-[11px] font-bold text-white shadow-md transition-all hover:bg-accent/90 active:scale-95"
+            >
+              <Navigation size={12} />
+              길찾기
+            </a>
             <a
               href={naverHref}
               target="_blank"
