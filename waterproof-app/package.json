@@ -9,7 +9,9 @@
     "lint": "next lint",
     "collect": "tsx scripts/collect-complexes.ts",
     "collect:dry": "tsx scripts/collect-complexes.ts --dry-run",
-    "collect:enrich": "tsx scripts/collect-complexes.ts --enrich"
+    "collect:enrich": "tsx scripts/collect-complexes.ts --enrich",
+    "rescore": "tsx scripts/rescore.ts",
+    "rescore:dry": "tsx scripts/rescore.ts --dry-run"
   },
   "dependencies": {
     "react": "^18",

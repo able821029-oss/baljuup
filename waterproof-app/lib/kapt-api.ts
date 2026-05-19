@@ -31,12 +31,15 @@ if (!API_KEY) {
 // 방수 키워드 (유지관리 이력 분류용)
 // ============================================================
 export const WATERPROOF_KEYWORDS = [
-  '방수', '우레탄', '도막', '실링', '코킹', '옥상방수', '외벽방수', '지하방수', '시트방수'
+  '방수', '우레탄', '도막', '실링', '코킹',
+  '옥상방수', '외벽방수', '지하방수', '시트방수', '복합방수',
+  '수밀', '누수', '옥상', '지붕'
 ];
 
 export function isWaterproofWork(workType: string | undefined | null): boolean {
   if (!workType) return false;
-  return WATERPROOF_KEYWORDS.some((kw) => workType.includes(kw));
+  const s = String(workType);
+  return WATERPROOF_KEYWORDS.some((kw) => s.includes(kw));
 }
 
 // ============================================================
@@ -87,9 +90,9 @@ export interface ComplexRaw {
 }
 
 export interface MaintenanceHistoryRaw {
-  workType?: string;
-  workYear?: string | number;
-  workAmount?: string | number;
+  workType?: string | null;
+  workYear?: string | number | null;
+  workAmount?: string | number | null;
   is_waterproof?: boolean;
   [k: string]: unknown;
 }
@@ -106,9 +109,9 @@ export interface BidAnnouncementRaw {
 }
 
 export interface MaintenanceFundRaw {
-  yearMonth?: string;    // 'YYYY-MM'
-  fundBalance?: string | number;
-  monthlyAmount?: string | number;
+  yearMonth?: string | null;    // 'YYYY-MM'
+  fundBalance?: string | number | null;
+  monthlyAmount?: string | number | null;
   [k: string]: unknown;
 }
 
@@ -294,12 +297,63 @@ export async function fetchMaintenanceHistory(
   const res = await fetchWithRetry<any>(url);
   if (!res.ok) return res;
 
-  const items = extractItems<MaintenanceHistoryRaw>(res.data).map((item) => ({
-    ...item,
-    is_waterproof: isWaterproofWork(String(item.workType ?? '')),
-  }));
+  // 공공데이터포털 응답은 필드명이 짧은 약어인 경우가 많음.
+  // workType / workYear / workAmount 외에도 wrkType / cdName / wrkYear / wrkAmount / wrkSj / repairCntnts 등 다양한 변형을 시도.
+  const items = extractItems<Record<string, unknown>>(res.data).map((raw) => {
+    const workType =
+      pickStr(raw, 'workType', 'wrkType', 'cdName', 'wrkSj', 'repairCntnts', 'repairSj', 'codeName', 'codeMgr', 'workNm');
+    const workYear =
+      pickIntFromAny(raw, 'workYear', 'wrkYear', 'repairYr', 'repairYear', 'yr', 'cntrctEnd', 'cntrctYmd', 'wrkYmd', 'completeDate');
+    const workAmount =
+      pickIntFromAny(raw, 'workAmount', 'wrkAmount', 'contractAmount', 'ctrtAmt', 'amount', 'wrkAmt');
+
+    const item: MaintenanceHistoryRaw = {
+      ...raw,
+      workType: workType ?? null,
+      workYear: workYear ?? null,
+      workAmount: workAmount ?? null,
+      is_waterproof: isWaterproofWork(workType ?? ''),
+    };
+    return item;
+  });
 
   return { ok: true, data: items };
+}
+
+// ============================================================
+// 다중 필드명 매핑 헬퍼 — 공공 API 응답의 short alias 대응
+// ============================================================
+function pickStr(obj: Record<string, unknown>, ...keys: string[]): string | null {
+  for (const k of keys) {
+    const v = obj[k];
+    if (v != null && String(v).trim().length > 0) return String(v).trim();
+  }
+  return null;
+}
+
+function pickIntFromAny(obj: Record<string, unknown>, ...keys: string[]): number | null {
+  for (const k of keys) {
+    const v = obj[k];
+    if (v == null) continue;
+    // 정수 그대로
+    const n = Number(v);
+    if (Number.isFinite(n) && n > 0) {
+      // 'YYYYMMDD' 같은 8자리 날짜면 연도만
+      if (n > 1_000_0000_0) {
+        const s = String(n);
+        if (s.length === 8) return parseInt(s.slice(0, 4), 10);
+      }
+      return n;
+    }
+    // 문자열 'YYYY-MM-DD' 또는 'YYYYMMDD' → 연도
+    const s = String(v).trim();
+    const m = s.match(/^(\d{4})/);
+    if (m) {
+      const y = parseInt(m[1], 10);
+      if (Number.isFinite(y) && y > 1900 && y < 2100) return y;
+    }
+  }
+  return null;
 }
 
 // ============================================================
@@ -322,20 +376,39 @@ export async function fetchBidAnnouncements(
 export async function fetchMaintenanceFund(
   kaptCode: string
 ): Promise<ApiResult<MaintenanceFundRaw[]>> {
-  // searchDate: 최근 12개월 중 최신값 — yyyymm 형식
+  // 공공 API 는 검색월 데이터가 없으면 빈 응답을 줄 때가 있어
+  // 전전월 → 전전전월 → 전전전전월 순으로 최대 4회 시도.
   const now = new Date();
-  // 데이터 반영 지연 대비 — 전월(전전월) 조회
-  const lookupDate = new Date(now.getFullYear(), now.getMonth() - 2, 1);
-  const yyyymm =
-    `${lookupDate.getFullYear()}${String(lookupDate.getMonth() + 1).padStart(2, '0')}`;
+  let lastErr: ApiResult<MaintenanceFundRaw[]> | null = null;
 
-  const url = buildUrl(
-    '/AptRepairsCostServiceV2/getHsmpResrvFndBalanceInfoV2',
-    { kaptCode, searchDate: yyyymm },
-  );
-  const res = await fetchWithRetry<any>(url);
-  if (!res.ok) return res;
-  return { ok: true, data: extractItems<MaintenanceFundRaw>(res.data) };
+  for (let offset = 2; offset <= 5; offset++) {
+    const d = new Date(now.getFullYear(), now.getMonth() - offset, 1);
+    const yyyymm = `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}`;
+    const url = buildUrl(
+      '/AptRepairsCostServiceV2/getHsmpResrvFndBalanceInfoV2',
+      { kaptCode, searchDate: yyyymm },
+    );
+    const res = await fetchWithRetry<any>(url);
+    if (!res.ok) {
+      lastErr = res as ApiResult<MaintenanceFundRaw[]>;
+      // 키/엔드포인트 문제면 다음 월 시도해도 의미 없음 → 즉시 반환
+      if (/SERVICE_KEY|UNAUTHORIZED|NOT_REGISTERED/i.test(res.error)) return res as ApiResult<MaintenanceFundRaw[]>;
+      continue;
+    }
+    const raw = extractItems<Record<string, unknown>>(res.data);
+    if (raw.length === 0) continue;
+
+    const items: MaintenanceFundRaw[] = raw.map((r) => ({
+      ...r,
+      yearMonth:
+        pickStr(r, 'yearMonth', 'srchymd', 'srchYm', 'kaptResrv') ?? yyyymm,
+      fundBalance: pickIntFromAny(r, 'fundBalance', 'sumResrvBalance', 'resrvBalance', 'kaptResrv', 'balance'),
+      monthlyAmount: pickIntFromAny(r, 'monthlyAmount', 'resrvAmount', 'kaptResrvMonth', 'monthAmount'),
+    }));
+    return { ok: true, data: items };
+  }
+
+  return lastErr ?? { ok: true, data: [] };
 }
 
 // ============================================================
