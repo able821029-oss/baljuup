@@ -643,6 +643,21 @@
     font-family: inherit;
   }
 
+  /* 아이콘 (Lucide 기반 인라인 SVG) */
+  .ico {
+    display: inline-block;
+    width: 1em;
+    height: 1em;
+    vertical-align: -0.125em;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .ico-lg { width: 28px; height: 28px; }
+  .ico-md { width: 18px; height: 18px; }
+
   /* 모바일 반응형 */
   @media (max-width: 480px) {
     .hero { padding: 40px 16px 60px; }
@@ -652,14 +667,94 @@
     .core h2, .final-cta h2 { font-size: 24px; }
   }
 </style>
+
+<!-- Lucide 아이콘 심볼 정의 (한 번 정의하고 <use> 로 재활용) -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-flame" viewBox="0 0 24 24">
+      <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/>
+    </symbol>
+    <symbol id="i-hourglass" viewBox="0 0 24 24">
+      <path d="M5 22h14"/><path d="M5 2h14"/>
+      <path d="M17 22v-4.172a2 2 0 0 0-.586-1.414L12 12l-4.414 4.414A2 2 0 0 0 7 17.828V22"/>
+      <path d="M7 2v4.172a2 2 0 0 0 .586 1.414L12 12l4.414-4.414A2 2 0 0 0 17 6.172V2"/>
+    </symbol>
+    <symbol id="i-target" viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>
+    </symbol>
+    <symbol id="i-gift" viewBox="0 0 24 24">
+      <rect x="3" y="8" width="18" height="4" rx="1"/>
+      <path d="M12 8v13"/><path d="M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7"/>
+      <path d="M7.5 8a2.5 2.5 0 0 1 0-5A4.8 8 0 0 1 12 8a4.8 8 0 0 1 4.5-5 2.5 2.5 0 0 1 0 5"/>
+    </symbol>
+    <symbol id="i-gem" viewBox="0 0 24 24">
+      <path d="M6 3h12l4 6-10 13L2 9Z"/><path d="M11 3 8 9l4 13 4-13-3-6"/><path d="M2 9h20"/>
+    </symbol>
+    <symbol id="i-phone" viewBox="0 0 24 24">
+      <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.37 1.9.72 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.35 1.85.59 2.81.72A2 2 0 0 1 22 16.92z"/>
+    </symbol>
+    <symbol id="i-trophy" viewBox="0 0 24 24">
+      <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/>
+      <path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/>
+      <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/>
+      <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/>
+    </symbol>
+    <symbol id="i-check" viewBox="0 0 24 24">
+      <polyline points="20 6 9 17 4 12"/>
+    </symbol>
+    <symbol id="i-zap" viewBox="0 0 24 24">
+      <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+    </symbol>
+    <symbol id="i-play" viewBox="0 0 24 24">
+      <polygon points="6 3 20 12 6 21 6 3"/>
+    </symbol>
+    <symbol id="i-bell" viewBox="0 0 24 24">
+      <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/>
+      <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>
+    </symbol>
+    <symbol id="i-layers" viewBox="0 0 24 24">
+      <polygon points="12 2 2 7 12 12 22 7 12 2"/>
+      <polyline points="2 17 12 22 22 17"/>
+      <polyline points="2 12 12 17 22 12"/>
+    </symbol>
+    <symbol id="i-shield" viewBox="0 0 24 24">
+      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+    </symbol>
+    <symbol id="i-clock-fast" viewBox="0 0 24 24">
+      <circle cx="12" cy="13" r="9"/>
+      <polyline points="12 8 12 13 16 15"/>
+      <line x1="9" y1="2" x2="15" y2="2"/>
+    </symbol>
+    <symbol id="i-database" viewBox="0 0 24 24">
+      <ellipse cx="12" cy="5" rx="9" ry="3"/>
+      <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>
+      <path d="M3 12c0 1.66 4 3 9 3s9-1.34 9-3"/>
+    </symbol>
+    <symbol id="i-sparkles" viewBox="0 0 24 24">
+      <path d="m12 3-1.9 5.8-5.8 1.9 5.8 1.9L12 18.4l1.9-5.8 5.8-1.9-5.8-1.9z"/>
+      <path d="M5 3v4"/><path d="M19 17v4"/>
+      <path d="M3 5h4"/><path d="M17 19h4"/>
+    </symbol>
+  </defs>
+</svg>
 </head>
 <body>
 
 <!-- 상단 알림바 -->
 <div class="topbar">
   <span class="dot"></span>
-  <strong>30명 한정 사전 모집</strong> · 런칭 후 3개월 무료 + 평생 30% 할인
+  <strong>30명 한정 사전 모집</strong> · 런칭 후 1개월 무료 + 평생 30% 할인
 </div>
+
+<style>
+  /* topbar 의 dot 을 작은 도형 그대로 유지 — 시각적 강조용 (이모지 X) */
+  .ico-inline {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .ico-inline svg { flex-shrink: 0; }
+</style>
 
 <!-- 헤더 -->
 <header>
@@ -672,25 +767,34 @@
 <!-- HERO -->
 <section class="hero">
   <div class="hero-inner">
-    <div class="hero-badge">🔥 런칭 전 사전 모집 진행 중</div>
+    <div class="hero-badge ico-inline">
+      <svg class="ico" width="14" height="14"><use href="#i-flame"/></svg>
+      런칭 전 사전 모집 진행 중
+    </div>
     <h1>
       방수업체 사장님,<br>
       다음 발주를 <span class="highlight">6개월 먼저</span> 알 수 있다면?
     </h1>
     <p class="sub">
-      수도권 1.7만 단지의 노후도·충당금·이력을 AI가 24시간 분석.<br>
+      수도권 단지를 자체 알고리즘으로 24시간 분석.<br>
       <strong style="color:white;">발주가 임박한 단지</strong>를 입찰공고 전에 알려드립니다.
     </p>
 
     <!-- 카운터 -->
     <div class="counter-box">
-      <div class="label">⏳ 사전 등록 현황</div>
+      <div class="label ico-inline">
+        <svg class="ico" width="12" height="12"><use href="#i-hourglass"/></svg>
+        사전 등록 현황
+      </div>
       <div class="progress">
         <span><span class="current" id="counter-current">17</span><span class="total"> / 30명</span></span>
         <span class="total" id="counter-pct">57%</span>
       </div>
       <div class="bar"><div class="bar-fill" id="counter-bar" style="width:57%"></div></div>
-      <div class="remaining">🎯 남은 자리 <strong>13명</strong> · 마감 임박</div>
+      <div class="remaining ico-inline">
+        <svg class="ico" width="12" height="12"><use href="#i-target"/></svg>
+        남은 자리 <strong>13명</strong> · 마감 임박
+      </div>
     </div>
 
     <!-- CTA 폼 -->
@@ -711,22 +815,28 @@
     <p class="title">출시 후에는 못 받습니다</p>
     <div class="benefits-grid">
       <div class="benefit-card">
-        <div class="icon">🎁</div>
+        <div class="icon" style="color:var(--accent)">
+          <svg class="ico ico-lg"><use href="#i-gift"/></svg>
+        </div>
         <div class="name">런칭 후</div>
-        <div class="value">3개월 무료</div>
-        <div class="desc">출시 시점부터 첫 3개월 전 기능 무료. 신용카드 등록 없음.</div>
+        <div class="value">1개월 무료</div>
+        <div class="desc">출시 시점부터 첫 1개월 전 기능 무료. 신용카드 등록 없음, 자동 결제 없음.</div>
       </div>
       <div class="benefit-card">
-        <div class="icon">💎</div>
+        <div class="icon" style="color:var(--accent)">
+          <svg class="ico ico-lg"><use href="#i-gem"/></svg>
+        </div>
         <div class="name">정식 가입 시</div>
         <div class="value">평생 30% 할인</div>
-        <div class="desc">사전 등록자만 평생 30% 할인. 인상되어도 그대로 유지.</div>
+        <div class="desc">사전 등록자만 평생 30% 할인. 정가가 인상되어도 사장님 가격은 그대로 유지.</div>
       </div>
       <div class="benefit-card">
-        <div class="icon">📞</div>
-        <div class="name">대표가 직접</div>
-        <div class="value">1:1 온보딩</div>
-        <div class="desc">출시 후 1주일 내 대표가 직접 전화로 사용법 안내.</div>
+        <div class="icon" style="color:var(--accent)">
+          <svg class="ico ico-lg"><use href="#i-play"/></svg>
+        </div>
+        <div class="name">바로 시작</div>
+        <div class="value">전용 가이드</div>
+        <div class="desc">단계별 사용법 영상 + 사전등록자 단톡방 운영. 모르는 건 바로 질문.</div>
       </div>
     </div>
   </div>
@@ -735,54 +845,161 @@
 <!-- 핵심 가치 -->
 <section class="core">
   <div class="core-inner">
-    <h2>왜 발주Up 인가</h2>
-    <p class="sub">기존 방식 vs 발주Up — 사장님 시간을 9배 줄여드립니다</p>
-    <div class="core-grid">
+    <h2>다른 영업 도구와 결정적으로 다른 4가지</h2>
+    <p class="sub">"데이터 조회 도구"가 아니라 "다음 행동을 알려주는 도구" 입니다.</p>
+    <div class="core-grid core-grid-4">
       <div class="core-card">
-        <div class="num">1</div>
-        <h3>입찰공고 뜨기 전 예측</h3>
+        <div class="card-ico"><svg class="ico ico-lg"><use href="#i-clock-fast"/></svg></div>
+        <h3>공고 뜨기 전에 미리 알림</h3>
         <p>
-          충당금·노후도·유지이력을 AI가 분석해 <strong>6개월~1년 전에</strong>
-          발주 가능성 점수로 알려드립니다. 경쟁사보다 먼저 영업 가능.
+          입찰공고가 떴다는 건 이미 단지 내부에서 80% 결정이 끝났다는 뜻입니다.
+          <strong>발주Up 은 공고가 뜨기 전부터 발주 가능성이 높은 단지를 알려드립니다.</strong>
+          경쟁사가 모르는 사이 먼저 영업 들어가세요.
         </p>
       </div>
       <div class="core-card">
-        <div class="num">2</div>
-        <h3>관리소장 전화번호 즉시</h3>
+        <div class="card-ico"><svg class="ico ico-lg"><use href="#i-layers"/></svg></div>
+        <h3>한 단지 여러 영업 기회</h3>
         <p>
-          공공데이터 기반 1.7만 단지의 관리소장 직통 번호. 정확한 영업 타이밍에
-          바로 컨택할 수 있습니다.
+          단지에는 방수만 있는 게 아닙니다.
+          <strong>한 단지에서 발생할 수 있는 다양한 보수 공사 시점을 종합적으로 보여드립니다.</strong>
+          영업 한 번에 여러 기회.
         </p>
       </div>
       <div class="core-card">
-        <div class="num">3</div>
-        <h3>AI 제안서 1분 생성</h3>
+        <div class="card-ico"><svg class="ico ico-lg"><use href="#i-database"/></svg></div>
+        <h3>사장님은 TOP 단지만 보세요</h3>
         <p>
-          단지 정보를 자동으로 분석해 맞춤 제안서를 PDF 로 즉시 생성.
-          이메일·카톡으로 발송까지 한 번에.
+          사장님이 일일이 단지를 찾을 필요 없습니다.
+          <strong>저희가 가능성 높은 단지를 정렬해서 보여드립니다.</strong>
+          하루 5분이면 오늘 어디 영업 갈지 정해집니다.
         </p>
       </div>
+      <div class="core-card">
+        <div class="card-ico"><svg class="ico ico-lg"><use href="#i-sparkles"/></svg></div>
+        <h3>영업 사이클 한 화면에</h3>
+        <p>
+          타깃 발견·연락·제안서 작성을 따로따로 하지 마세요.
+          <strong>발견부터 제안서까지 한 도구에서.</strong>
+          단지 클릭 한 번이면 영업이 시작됩니다.
+        </p>
+      </div>
+    </div>
+
+    <!-- 비교표 -->
+    <div class="compare">
+      <div class="compare-title">기존 방식 vs 발주Up</div>
+      <table class="compare-table">
+        <thead>
+          <tr><th></th><th>기존 (수기 영업 / 입찰공고 추적)</th><th>발주Up</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>발견 시점</td><td>입찰공고 뜬 직후 (이미 경쟁 시작)</td><td><strong>공고 뜨기 한참 전</strong></td></tr>
+          <tr><td>커버 범위</td><td>관심 단지 수십 곳 수동 추적</td><td><strong>수도권 전 단지 자동</strong></td></tr>
+          <tr><td>대상 공종</td><td>한 공종씩 따로 영업</td><td><strong>다공종 동시 기회 발견</strong></td></tr>
+          <tr><td>관리소장 컨택</td><td>인맥 / 직접 검색</td><td><strong>즉시 매칭</strong></td></tr>
+          <tr><td>제안서</td><td>매번 2~3시간 수기 작성</td><td><strong>1분 자동 생성</strong></td></tr>
+        </tbody>
+      </table>
     </div>
   </div>
 </section>
 
+<style>
+  .core-grid-4 { grid-template-columns: 1fr; }
+  @media (min-width: 768px) {
+    .core-grid-4 { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (min-width: 1100px) {
+    .core-grid-4 { grid-template-columns: repeat(4, 1fr); }
+  }
+  .card-ico {
+    width: 44px; height: 44px;
+    background: linear-gradient(135deg, #eff6ff, #ecfeff);
+    color: var(--accent);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 16px;
+  }
+  /* 기존 .num 자리를 .card-ico 가 대체. 호환 위해 num 도 그대로 둠 */
+  .core-card .num { display: none; }
+
+  .compare {
+    margin-top: 48px;
+    background: white;
+    border-radius: 16px;
+    padding: 28px 20px;
+    border: 1px solid var(--border);
+    box-shadow: 0 4px 14px rgba(0,0,0,0.03);
+    overflow-x: auto;
+  }
+  .compare-title {
+    font-size: 14px;
+    font-weight: 800;
+    color: var(--primary);
+    text-align: center;
+    margin-bottom: 18px;
+    letter-spacing: -0.02em;
+  }
+  .compare-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    min-width: 480px;
+  }
+  .compare-table th {
+    padding: 12px 10px;
+    text-align: left;
+    background: var(--bg);
+    font-weight: 700;
+    color: var(--on-surface-var);
+    font-size: 11px;
+    border-bottom: 2px solid var(--border);
+  }
+  .compare-table th:last-child {
+    color: var(--accent);
+    background: rgba(37,99,235,0.05);
+  }
+  .compare-table td {
+    padding: 12px 10px;
+    border-bottom: 1px dashed var(--border);
+    vertical-align: top;
+  }
+  .compare-table td:first-child {
+    font-weight: 700;
+    color: var(--on-surface);
+    width: 100px;
+  }
+  .compare-table td:last-child {
+    background: rgba(37,99,235,0.03);
+  }
+  .compare-table strong {
+    color: var(--accent);
+  }
+</style>
+
 <!-- 사회적 증거 -->
 <section class="proof">
   <div class="proof-inner">
-    <div class="label">🏆 신뢰할 수 있는 데이터</div>
-    <h2>국토교통부 공공데이터 정식 활용</h2>
+    <div class="label ico-inline" style="justify-content:center;">
+      <svg class="ico" width="14" height="14" style="color:#fbbf24"><use href="#i-trophy"/></svg>
+      신뢰할 수 있는 정보 기반
+    </div>
+    <h2>정부 공인 데이터로 매일 자동 분석</h2>
     <div class="proof-stats">
       <div class="stat">
-        <div class="num">17,000+</div>
-        <div class="desc">수도권 단지</div>
+        <div class="num">수도권</div>
+        <div class="desc">전 단지 커버</div>
       </div>
       <div class="stat">
         <div class="num">24/7</div>
-        <div class="desc">자동 분석</div>
+        <div class="desc">자동 갱신</div>
       </div>
       <div class="stat">
-        <div class="num">4종</div>
-        <div class="desc">공공 API</div>
+        <div class="num">자체</div>
+        <div class="desc">분석 알고리즘</div>
       </div>
     </div>
   </div>
@@ -847,31 +1064,51 @@
     </details>
 
     <details>
-      <summary>3개월 무료 후 자동 결제되나요?</summary>
-      <p>아니요. 신용카드 등록을 받지 않습니다. 3개월 후 사용을 원하시면 직접 결제하시는 구조입니다. 강제 결제 절대 없음.</p>
+      <summary>1개월 무료 후 자동 결제되나요?</summary>
+      <p>아니요. 신용카드 등록 자체를 받지 않습니다. 1개월 후 계속 쓰시려면 사장님이 직접 결제하시는 구조입니다. 무료 끝나도 강제 결제 절대 없음.</p>
+    </details>
+
+    <details>
+      <summary>다른 입찰공고 알림 서비스랑 뭐가 달라요?</summary>
+      <p>
+        결정적 차이: <strong>입찰공고는 이미 늦은 정보</strong>입니다.
+        공고가 떴다는 건 단지 내부에서 이미 어느 업체가 받을지 80% 결정됐다는 뜻이에요.<br><br>
+        발주Up 은 공고가 뜨기 <strong>6개월 전</strong> 부터 충당금·노후도·이력 분석으로 발주 가능성을 점수화합니다.
+        경쟁사보다 6개월 먼저 영업 들어갈 수 있어요.
+      </p>
+    </details>
+
+    <details>
+      <summary>대표가 직접 1:1 도와주나요?</summary>
+      <p>
+        솔직히 말씀드리면 대표 혼자라 1:1 응대는 어렵습니다.
+        대신 <strong>단계별 사용법 영상 + 사전등록자 단톡방</strong>을 운영해
+        모르는 건 단톡방에서 바로 답변드립니다. (오전 9시~오후 6시 평일)
+      </p>
     </details>
 
     <details>
       <summary>데이터는 어디서 가져오나요?</summary>
       <p>
-        국토교통부 공공데이터포털의 공식 API 4종을 사용합니다.
-        (공동주택 단지 목록 / 기본 정보 / 유지관리 이력 / 장기수선충당금)
+        정부에서 공식적으로 제공·인증한 데이터를 정식 라이선스로 활용합니다.
+        사장님께서 직접 받아 가공하실 필요 없이 즉시 영업에 쓸 수 있는 형태로 제공해드립니다.
       </p>
     </details>
 
     <details>
       <summary>방수 외 다른 공종도 되나요?</summary>
       <p>
-        방수·도장·엘리베이터·배관·주차장·조경 6대 공종을 자동 분석합니다.
-        단지 노후도에 맞춰 다음 공사를 예측해드립니다.
+        네. 방수 외에도 단지에서 발생할 수 있는 주요 보수 공사들을 종합적으로 분석합니다.
+        한 단지에서 여러 공사 영업 기회를 동시에 보실 수 있습니다.
       </p>
     </details>
 
     <details>
-      <summary>경쟁사도 같은 데이터 보지 않나요?</summary>
+      <summary>다른 업체에서 비슷한 서비스 만들 수 있지 않나요?</summary>
       <p>
-        공공데이터는 누구나 받을 수 있지만, <strong>AI로 점수화·정렬·알림</strong>까지
-        하는 도구는 발주Up이 처음입니다. 가공 시간이 곧 경쟁력입니다.
+        데이터 수집·정제·점수화·매칭까지의 전 과정을 자체 알고리즘으로 구축하는 데
+        오랜 시간이 걸립니다. 사장님께서 출시 전 <strong>사전 등록자 30명에 들어가시면
+        평생 30% 할인 + 1개월 무료</strong>로 가장 유리하게 시작하실 수 있습니다.
       </p>
     </details>
 
@@ -939,10 +1176,13 @@
         method: 'POST',
         mode: 'no-cors',
         body: JSON.stringify({
-          phone: digits,
-          timestamp: new Date().toISOString(),
+          form: 'landing_v2',
           source: 'landing_v2',
-          ua: navigator.userAgent.slice(0, 200),
+          phone: digits,
+          phoneRaw: phone,
+          userAgent: navigator.userAgent.slice(0, 200),
+          referrer: document.referrer || '',
+          path: location.pathname + location.search,
         }),
       });
 
