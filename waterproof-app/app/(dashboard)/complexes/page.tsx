@@ -218,6 +218,7 @@ export default async function ComplexesPage({
 // ============================================================
 import Link from 'next/link';
 import { PredictionScoreBadge } from '@/components/complexes/PredictionScore';
+import { CategoryIcon } from '@/components/complexes/CategoryIcon';
 
 function ComplexRowDesktop({
   c,
@@ -331,16 +332,7 @@ function ComplexRowDesktop({
             </div>
           )}
         </Link>
-        {/* 관리소장 전화 — 클릭 시 다이얼 (Link 와 형제 관계라 propagation 제어 불필요;
-            Server Component 에서 onClick 을 prop 으로 넘기면 Next.js 가 거부함) */}
-        {c.phone && (
-          <a
-            href={`tel:${c.phone.replace(/[^0-9+]/g, '')}`}
-            className="mt-1.5 inline-flex items-center gap-1 text-[11px] font-medium text-accent hover:underline"
-          >
-            📞 {c.phone}
-          </a>
-        )}
+        {/* 관리소장 연락처는 단지 상세 페이지로 이동 (목록 줄높이 정리 + 영업 우선순위 자체에 집중) */}
       </td>
 
       {/* 준공 */}
@@ -391,26 +383,14 @@ function ComplexRowDesktop({
         )}
       </td>
 
-      {/* 추천 공종 TOP 1 */}
-      <td className="px-3 py-3 align-top">
+      {/* 추천 공종 TOP 1 — 아이콘 + 라벨 (시급도는 좌측 '발주 도래' 칩에서 이미 표현되어 중복 제거,
+          whitespace-nowrap 으로 줄바꿈 방지) */}
+      <td className="px-3 py-3 align-top whitespace-nowrap">
         {topRec && topRecMeta ? (
-          <div>
-            <div className="text-xs font-bold text-on-surface">
-              {topRecMeta.label}
-            </div>
-            <div
-              className={[
-                'mt-0.5 text-[10px] font-medium',
-                topRec.status === 'overdue'
-                  ? 'text-red-600'
-                  : topRec.status === 'now'
-                  ? 'text-orange-600'
-                  : 'text-amber-600',
-              ].join(' ')}
-            >
-              {topRec.statusLabel}
-            </div>
-          </div>
+          <span className="inline-flex items-center gap-1.5">
+            <CategoryIcon iconName={topRecMeta.icon} color={topRecMeta.color} size={14} />
+            <span className="text-xs font-bold text-on-surface">{topRecMeta.label}</span>
+          </span>
         ) : (
           <span className="text-xs text-gray-400">—</span>
         )}

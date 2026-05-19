@@ -26,6 +26,7 @@ import {
   BarChart3,
   CalendarCheck,
   Sparkles,
+  Phone,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { calcPredictionScore } from "@/lib/prediction";
@@ -62,7 +63,7 @@ export default async function ComplexDetailPage({
     id: string; name: string; address: string | null;
     sido: string | null; sigungu: string | null;
     built_year: number | null; households: number | null; buildings: number | null;
-    management_type: string | null; phone: string | null;
+    management_type: string | null; management_company: string | null; phone: string | null;
   };
   const c = complexRes.data as unknown as ComplexRow;
 
@@ -241,6 +242,31 @@ export default async function ComplexDetailPage({
                 </p>
               </div>
             </div>
+
+            {/* 관리사무소 정보 — 단지 목록에서 옮겨온 영업 핵심 정보 */}
+            {(c.phone || c.management_type) && (
+              <div className="mt-4 flex items-center justify-between gap-3 rounded-xl bg-slate-50 px-4 py-3">
+                <div className="min-w-0">
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-on-surface-var">
+                    관리사무소
+                  </p>
+                  <p className="mt-0.5 text-sm font-semibold text-on-surface">
+                    {c.management_type ?? "관리 방식 정보 없음"}
+                    {c.management_company ? ` · ${c.management_company}` : ""}
+                  </p>
+                </div>
+                {c.phone && (
+                  <a
+                    href={`tel:${c.phone.replace(/[^0-9+]/g, "")}`}
+                    className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-accent px-3 py-2 text-xs font-bold text-white shadow-md shadow-accent/20 transition-all hover:bg-accent/90 active:scale-[0.98]"
+                    aria-label={`관리사무소 ${c.phone} 전화 걸기`}
+                  >
+                    <Phone size={14} />
+                    <span className="tabular-nums">{c.phone}</span>
+                  </a>
+                )}
+              </div>
+            )}
           </div>
         </section>
 
