@@ -216,6 +216,8 @@ async function enrichAndScore(
     wpFound: 0, fundFound: 0, builtFound: 0,
   };
   const sampleErrors: string[] = [];
+  // 진단 — 첫 hist HAS_ITEMS 응답의 raw 구조 1회 덤프 (lastWaterproof 추출 0건 원인 파악용)
+  let histSampleLogged = false;
 
   // 동시 요청 수 제한
   const queue = complexes.slice();
@@ -235,7 +237,29 @@ async function enrichAndScore(
         // 통계 누적
         if (histRes.ok) {
           stats.histOk++;
-          if (histRes.data.length > 0) stats.histHasItems++;
+          if (histRes.data.length > 0) {
+            stats.histHasItems++;
+            // 첫 1건만 raw 구조 덤프 — 실제 필드명 확인용
+            if (!histSampleLogged) {
+              histSampleLogged = true;
+              const sample = histRes.data[0];
+              console.log(`[HIST SAMPLE] kaptCode=${kaptCode} items=${histRes.data.length}`);
+              console.log(`[HIST SAMPLE] keys=${JSON.stringify(Object.keys(sample))}`);
+              console.log(`[HIST SAMPLE] item0=${JSON.stringify(sample).slice(0, 600)}`);
+              // 추가로 처음 3건 의 workType 후보 필드들도 표시
+              const candKeys = ['workType', 'wrkType', 'workTypeName', 'wrkTypeNm', 'mntncWrkType', 'externalMntncWrkType', 'externalAirconRepairList', 'workCntn'];
+              for (let i = 0; i < Math.min(3, histRes.data.length); i++) {
+                const it = histRes.data[i] as Record<string, unknown>;
+                const found: Record<string, unknown> = {};
+                for (const k of Object.keys(it)) {
+                  if (candKeys.includes(k) || /work|wrk|mntnc|type/i.test(k)) {
+                    found[k] = it[k];
+                  }
+                }
+                console.log(`[HIST SAMPLE] item${i} workish=${JSON.stringify(found)}`);
+              }
+            }
+          }
         } else {
           stats.histFail++;
           if (sampleErrors.length < 3) sampleErrors.push(`hist: ${histRes.error}`);
