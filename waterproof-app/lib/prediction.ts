@@ -174,7 +174,12 @@ export function calcPredictionScore(input: PredictionInput): PredictionResult {
   const palette = SCORE_TIERS[tier];
 
   const lastWpEffective = (lastWaterproof as number | null | undefined) ?? baseYear;
-  const expectedOrderYear = lastWpEffective + EXPECTED_GAP;
+  // 첫 사이클 기준 예상 연도가 이미 과거면 다음 사이클로 자동 보정
+  // (예: 마지막 방수 1996 + 17 = 2013 < 현재 → 2030)
+  let expectedOrderYear = lastWpEffective + EXPECTED_GAP;
+  while (expectedOrderYear < currentYear) {
+    expectedOrderYear += EXPECTED_GAP;
+  }
   const yearsUntilExpected = expectedOrderYear - currentYear;
 
   return {
@@ -269,6 +274,23 @@ function buildReasons(o: {
   if (o.bids > 0) r.push(`현재 활성 입찰공고 ${o.bids}건 (+15)`);
 
   return r;
+}
+
+// ============================================================
+// DB 에 저장된 예상 발주 연도 표시용 보정
+//
+// complexes.expected_order_year 는 데이터 수집 시점에 계산된 값이라
+// 마이그레이션 전에는 과거 연도가 그대로 들어있을 수 있음.
+// 화면에서는 현재 연도 이후의 "다음 사이클"로 자동 보정해서 보여준다.
+// ============================================================
+export function nextOrderYearFromStored(
+  stored: number | null | undefined,
+  currentYear: number = new Date().getFullYear(),
+): number | null {
+  if (stored == null || !Number.isFinite(stored)) return null;
+  let y = stored;
+  while (y < currentYear) y += EXPECTED_GAP;
+  return y;
 }
 
 // ============================================================

@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { Logo } from "@/components/brand/Logo";
+import { nextOrderYearFromStored } from "@/lib/prediction";
 
 // 쿠키 기반 인증 + 사용자별 데이터가 있어 ISR 캐싱 불가 → dynamic 명시
 export const dynamic = "force-dynamic";
@@ -65,7 +66,7 @@ export default async function DashboardPage() {
     supabase.from("bid_announcements").select("id", { count: "exact", head: true }).gte("announced_at", startOfMonthIso()),
     supabase.from("proposals").select("id", { count: "exact", head: true }).eq("status", "won"),
     supabase.from("complex_predictions").select("id, name, prediction_score, expected_order_year")
-      .order("prediction_score", { ascending: false }).limit(3),
+      .order("prediction_score", { ascending: false }).limit(5),
     supabase.from("bid_announcements").select("id, title, work_type, announced_at, complex_id, complexes(name)")
       .order("announced_at", { ascending: false }).limit(3),
   ]);
@@ -76,7 +77,7 @@ export default async function DashboardPage() {
   const won = wonRes.count ?? 0;
 
   type TopRow = { id: string; name: string; prediction_score: number; expected_order_year: number | null };
-  const top3 = ((topRes.data ?? []) as unknown) as TopRow[];
+  const top = ((topRes.data ?? []) as unknown) as TopRow[];
 
   type BidRow = {
     id: string; title: string | null; work_type: string | null; announced_at: string | null;
@@ -123,33 +124,36 @@ export default async function DashboardPage() {
         </div>
 
         <div className="premium-shadow divide-y divide-slate-50 rounded-2xl border border-slate-100 bg-white">
-          {top3.length === 0 && (
+          {top.length === 0 && (
             <p className="px-5 py-10 text-center text-xs text-slate-400">
               수집된 단지가 없습니다. 공공데이터 수집 스크립트를 먼저 실행해주세요.
             </p>
           )}
-          {top3.map((c, i) => (
-            <Link
-              key={c.id}
-              href={`/complexes/${c.id}`}
-              className="flex items-center justify-between p-5 transition-colors active:bg-slate-50"
-            >
-              <div className="flex min-w-0 items-center gap-5">
-                <RankBadge rank={i + 1} />
-                <div className="min-w-0">
-                  <p className="truncate text-base font-bold text-on-surface">{c.name}</p>
-                  <p className="text-[11px] font-medium text-on-surface-var">
-                    예상 발주 {c.expected_order_year ?? new Date().getFullYear()}년
-                  </p>
+          {top.map((c, i) => {
+            const expected = nextOrderYearFromStored(c.expected_order_year);
+            return (
+              <Link
+                key={c.id}
+                href={`/complexes/${c.id}`}
+                className="flex items-center justify-between p-5 transition-colors active:bg-slate-50"
+              >
+                <div className="flex min-w-0 items-center gap-5">
+                  <RankBadge rank={i + 1} />
+                  <div className="min-w-0">
+                    <p className="truncate text-base font-bold text-on-surface">{c.name}</p>
+                    <p className="text-[11px] font-medium text-on-surface-var">
+                      예상 발주 {expected ?? "—"}{expected ? "년" : ""}
+                    </p>
+                  </div>
                 </div>
-              </div>
-              <div className="flex shrink-0 items-baseline gap-1">
-                <span className="font-data text-2xl font-black text-accent tabular-nums">{c.prediction_score}</span>
-                <span className="text-[10px] font-bold uppercase text-blue-600/50">Score</span>
-              </div>
-            </Link>
-          ))}
-          {top3.length > 0 && (
+                <div className="flex shrink-0 items-baseline gap-1">
+                  <span className="font-data text-2xl font-black text-accent tabular-nums">{c.prediction_score}</span>
+                  <span className="text-[10px] font-bold uppercase text-blue-600/50">Score</span>
+                </div>
+              </Link>
+            );
+          })}
+          {top.length > 0 && (
             <Link
               href="/complexes?tier=critical"
               className="block w-full rounded-b-2xl bg-slate-50/50 py-4 text-center text-xs font-bold uppercase tracking-widest text-accent transition-colors hover:bg-slate-50"

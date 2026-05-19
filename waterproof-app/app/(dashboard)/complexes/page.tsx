@@ -195,7 +195,10 @@ export default async function ComplexesPage({
                 <PredictionScore
                   score={c.prediction_score ?? 0}
                   complexName={c.name}
-                  expectedYear={c.expected_order_year ?? new Date().getFullYear()}
+                  expectedYear={
+                    nextOrderYearFromStored(c.expected_order_year) ??
+                    new Date().getFullYear()
+                  }
                   compact
                 />
               </div>
@@ -245,8 +248,10 @@ function ComplexRowDesktop({
   const zebra = index % 2 === 0 ? 'bg-white' : 'bg-slate-50/60';
   const currentYear = new Date().getFullYear();
   const ageYears = c.built_year ? currentYear - c.built_year : null;
+  // DB 저장값이 과거여도 화면에서는 다음 사이클로 보정 → 칩/표 셀 일관 사용
+  const expectedYearDisplay = nextOrderYearFromStored(c.expected_order_year, currentYear);
   const yearsUntilOrder =
-    c.expected_order_year != null ? c.expected_order_year - currentYear : null;
+    expectedYearDisplay != null ? expectedYearDisplay - currentYear : null;
 
   // ── 칩들 ────────────────────────────────────────
   const chips: { label: string; cls: string }[] = [];
@@ -409,7 +414,7 @@ function ComplexRowDesktop({
       {/* 예상 발주 */}
       <td className="px-3 py-3 text-xs tabular-nums align-top">
         <div className="font-semibold text-gray-700">
-          {c.expected_order_year ?? '—'}
+          {expectedYearDisplay ?? '—'}
         </div>
         {freshness && (
           <div className={['mt-0.5 text-[10px]', freshness.cls].join(' ')}>
