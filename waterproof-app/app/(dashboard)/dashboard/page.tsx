@@ -52,7 +52,7 @@ export default async function DashboardPage() {
     console.error("[dashboard] user profile lookup failed:", err);
   }
 
-  // ── 병렬 조회 (기존 그대로) ─────────────────────────────
+  // ── 병렬 조회 (기존 그대로 + 트렌드 차트용 proposals) ────
   const [
     totalRes,
     criticalRes,
@@ -60,6 +60,7 @@ export default async function DashboardPage() {
     wonRes,
     topRes,
     recentBidsRes,
+    proposalsTrendRes,
   ] = await Promise.all([
     supabase.from("complexes").select("id", { count: "exact", head: true }),
     supabase.from("complexes").select("id", { count: "exact", head: true }).gte("prediction_score", 80),
@@ -69,6 +70,8 @@ export default async function DashboardPage() {
       .order("prediction_score", { ascending: false }).limit(5),
     supabase.from("bid_announcements").select("id, title, work_type, announced_at, complex_id, complexes(name)")
       .order("announced_at", { ascending: false }).limit(3),
+    // 직전 6개월 (이번 달 포함) proposals 생성일 — 트렌드 차트용
+    supabase.from("proposals").select("created_at").gte("created_at", startOfMonthsAgoIso(5)),
   ]);
 
   const total = totalRes.count ?? 0;
@@ -87,6 +90,10 @@ export default async function DashboardPage() {
     const cx = Array.isArray(b.complexes) ? b.complexes[0] : b.complexes;
     return { ...b, complexName: cx?.name ?? "단지" };
   });
+
+  type TrendRow = { created_at: string };
+  const proposalRows = ((proposalsTrendRes.data ?? []) as unknown) as TrendRow[];
+  const monthlyTrend = buildMonthlyCounts(proposalRows);
 
   return (
     <div className="mx-auto w-full max-w-3xl px-5 pt-6 pb-6 space-y-8 lg:max-w-5xl">
@@ -228,7 +235,7 @@ export default async function DashboardPage() {
             {currentQuarter()}
           </div>
         </div>
-        <TrendChart />
+        <TrendChart data={monthlyTrend} />
       </section>
     </div>
   );
@@ -391,35 +398,59 @@ function RankBadge({ rank }: { rank: number }) {
 }
 
 // ============================================================
-// 트렌드 차트 (mock — 추후 proposals 월별 카운트로 교체)
+// 트렌드 차트 — 직전 6개월 proposals.created_at 월별 카운트
+// 데이터 한 건도 없으면 빈 상태 카드로 표시 (mock 막대 금지)
 // ============================================================
-function TrendChart() {
-  const months = ["10월", "11월", "12월", "1월", "2월", "3월"];
-  const data = [40, 65, 50, 85, 60, 70];
-  const highlights = [1, 3, 5]; // 강조할 인덱스
+function TrendChart({ data }: { data: Array<{ label: string; count: number }> }) {
+  const total = data.reduce((s, d) => s + d.count, 0);
+
+  if (total === 0) {
+    return (
+      <div className="flex h-44 w-full flex-col items-center justify-center gap-1 text-center">
+        <p className="text-sm font-semibold text-slate-500">아직 제안서 기록이 없습니다</p>
+        <p className="text-xs text-slate-400">
+          제안서를 만들면 월별 트렌드가 자동으로 채워집니다.
+        </p>
+        <Link
+          href="/proposals/new"
+          className="mt-2 inline-flex items-center gap-1 rounded-md bg-blue-50 px-3 py-1.5 text-xs font-bold text-accent transition-colors hover:bg-blue-100"
+        >
+          첫 제안서 만들기
+          <ArrowRight size={12} />
+        </Link>
+      </div>
+    );
+  }
+
+  const max = Math.max(1, ...data.map((d) => d.count));
 
   return (
     <div className="flex h-44 w-full items-end gap-3 border-b border-slate-100 px-2 pb-2">
-      {data.map((h, i) => {
-        const isHighlight = highlights.includes(i);
+      {data.map((d, i) => {
+        const heightPct = Math.round((d.count / max) * 100);
+        const isMax = d.count > 0 && d.count === max;
         return (
           <div key={i} className="group flex flex-1 flex-col items-center justify-end gap-2">
             <div
               className={
-                isHighlight
+                isMax
                   ? "w-full rounded-lg bg-accent shadow-lg shadow-blue-500/20 transition-all group-hover:scale-105"
                   : "w-full rounded-lg bg-slate-100 transition-all group-hover:bg-slate-200"
               }
-              style={{ height: `${h}%` }}
+              style={{
+                height: `${heightPct}%`,
+                minHeight: d.count > 0 ? 8 : 4,
+              }}
+              title={`${d.label}: ${d.count}건`}
             />
             <span
               className={
-                isHighlight
+                isMax
                   ? "text-[10px] font-black text-accent"
                   : "text-[10px] font-bold text-slate-400"
               }
             >
-              {months[i]}
+              {d.label}
             </span>
           </div>
         );
@@ -434,6 +465,31 @@ function TrendChart() {
 function startOfMonthIso(): string {
   const d = new Date();
   return new Date(d.getFullYear(), d.getMonth(), 1).toISOString();
+}
+
+// N개월 전의 1일 (트렌드 쿼리 lower bound)
+function startOfMonthsAgoIso(months: number): string {
+  const d = new Date();
+  return new Date(d.getFullYear(), d.getMonth() - months, 1).toISOString();
+}
+
+// 직전 6개월(이번 달 포함)의 월별 카운트로 집계
+function buildMonthlyCounts(
+  rows: Array<{ created_at: string }>,
+): Array<{ label: string; count: number }> {
+  const now = new Date();
+  const result: Array<{ label: string; count: number }> = [];
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const y = d.getFullYear();
+    const m = d.getMonth();
+    const count = rows.reduce((acc, r) => {
+      const rd = new Date(r.created_at);
+      return rd.getFullYear() === y && rd.getMonth() === m ? acc + 1 : acc;
+    }, 0);
+    result.push({ label: `${m + 1}월`, count });
+  }
+  return result;
 }
 
 function currentQuarter(): string {

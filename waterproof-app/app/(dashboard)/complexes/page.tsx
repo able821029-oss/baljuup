@@ -227,6 +227,7 @@ export default async function ComplexesPage({
 import Link from 'next/link';
 import { PredictionScoreBadge } from '@/components/complexes/PredictionScore';
 import { CategoryIcon } from '@/components/complexes/CategoryIcon';
+import { RowLink } from '@/components/complexes/RowLink';
 
 function ComplexRowDesktop({
   c,
@@ -317,7 +318,8 @@ function ComplexRowDesktop({
   })();
 
   return (
-    <tr
+    <RowLink
+      href={`/complexes/${c.id}`}
       className={[
         'group border-b border-dashed border-slate-200/70 transition-colors',
         zebra,
@@ -427,7 +429,7 @@ function ComplexRowDesktop({
       <td className="px-3 py-3 align-top">
         <PredictionScoreBadge score={c.prediction_score ?? 0} />
       </td>
-    </tr>
+    </RowLink>
   );
 }
 
