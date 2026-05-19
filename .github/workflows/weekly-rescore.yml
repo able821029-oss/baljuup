@@ -35,7 +35,7 @@ jobs:
 
     steps:
       - name: 체크아웃
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Node.js 22 설치
         # @supabase/realtime-js 가 native WebSocket 을 요구해 Node 22+ 필수
