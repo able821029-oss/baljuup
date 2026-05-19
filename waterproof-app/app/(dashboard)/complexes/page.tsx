@@ -14,7 +14,8 @@ import { createClient } from '@/lib/supabase/server';
 import { ComplexFilters } from '@/components/complexes/ComplexFilters';
 import { PredictionScore } from '@/components/complexes/PredictionScore';
 import { Pagination } from '@/components/complexes/Pagination';
-import { SCORE_TIERS } from '@/lib/prediction';
+import { RowCheckbox, SelectionFAB } from '@/components/complexes/selection';
+import { SCORE_TIERS, nextOrderYearFromStored } from '@/lib/prediction';
 import { predictAllCategories, WORK_CATEGORIES } from '@/lib/work-categories';
 
 export const revalidate = 60;
@@ -156,6 +157,7 @@ export default async function ComplexesPage({
             <table className="w-full text-sm">
               <thead className="bg-gray-50 text-left text-xs uppercase tracking-wider text-gray-500">
                 <tr>
+                  <th className="w-10 px-3 py-3" aria-label="선택" />
                   <th className="px-4 py-3">단지 / 영업 정보</th>
                   <th className="w-20 px-3 py-3">준공</th>
                   <th className="w-20 px-3 py-3">세대수</th>
@@ -209,6 +211,9 @@ export default async function ComplexesPage({
           />
         </>
       )}
+
+      {/* 다중 선택 FAB — 선택 1개 이상 있을 때만 노출 */}
+      <SelectionFAB />
     </div>
   );
 }
@@ -314,6 +319,11 @@ function ComplexRowDesktop({
         'hover:bg-blue-50/40',
       ].join(' ')}
     >
+      {/* 선택 체크박스 — 엑셀 다운로드용 */}
+      <td className="px-3 py-3 align-top">
+        <RowCheckbox complexId={c.id} />
+      </td>
+
       {/* 단지명 + 주소 + 칩들 + 관리소장 전화 */}
       <td className="relative px-4 py-3 align-top">
         <span className="pointer-events-none absolute inset-y-0 left-0 w-0.5 bg-transparent transition-colors group-hover:bg-accent" />
