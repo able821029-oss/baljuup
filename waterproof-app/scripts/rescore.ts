@@ -185,15 +185,32 @@ async function main() {
       });
     }
 
-    // 업데이트 — upsert (id 기준)
+    // 업데이트 — per-row UPDATE (upsert 는 INSERT 부분에서 NOT NULL 컬럼인 kapt_code 제약 위반)
+    // 동시 50개씩 묶어 보내 전체 ~9000건도 30초 내 처리
     if (!DRY_RUN && updates.length) {
-      const { error: upErr } = await supabase
-        .from('complexes')
-        .upsert(updates, { onConflict: 'id', defaultToNull: false });
-      if (upErr) {
-        console.error(`  [FAIL] upsert: ${upErr.message}`);
-      } else {
-        totalUpdated += updates.length;
+      const CONCURRENCY = 50;
+      let failed = 0;
+      for (let i = 0; i < updates.length; i += CONCURRENCY) {
+        const slice = updates.slice(i, i + CONCURRENCY);
+        const results = await Promise.all(
+          slice.map((u) =>
+            supabase
+              .from('complexes')
+              .update({
+                prediction_score: u.prediction_score,
+                expected_order_year: u.expected_order_year,
+                last_updated: u.last_updated,
+              })
+              .eq('id', u.id),
+          ),
+        );
+        for (const r of results) {
+          if (r.error) failed++;
+          else totalUpdated++;
+        }
+      }
+      if (failed > 0) {
+        console.error(`\n  [WARN] 이 배치에서 ${failed}건 업데이트 실패`);
       }
     }
 
