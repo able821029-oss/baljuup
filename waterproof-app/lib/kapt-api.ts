@@ -117,6 +117,21 @@ export interface BidAnnouncementRaw {
   [k: string]: unknown;
 }
 
+// 수의계약 공지 — data.go.kr ID 15057758
+//   "국토교통부_공동주택 수의계약 공지 정보제공 서비스"
+//   입찰 없이 특정 업체와 직접 계약하는 방식. 소규모 방수공사가 많아 영업 가치 큼.
+export interface NegotiatedContractRaw {
+  ntceNo?: string;                    // 공지번호 (announcement_no)
+  ntceTitle?: string;                 // 공지 제목
+  workType?: string;                  // 공종
+  contractAmount?: string | number;   // 계약금액
+  ntceDate?: string;                  // 공지일
+  contractDate?: string;              // 계약일
+  status?: string;                    // 'active' | 'closed'
+  kaptCode?: string;                  // 단지 코드 (날짜 범위 검색 시 응답에 포함)
+  [k: string]: unknown;
+}
+
 export interface MaintenanceFundRaw {
   yearMonth?: string | null;    // 'YYYY-MM'
   fundBalance?: string | number | null;
@@ -384,87 +399,237 @@ function pickIntFromAny(obj: Record<string, unknown>, ...keys: string[]): number
 }
 
 // ============================================================
-// API 3. 입찰공고 (특정 단지) — 별도 API 신청 필요 (현재 미신청)
-// 신청 안 된 상태로 호출하면 빈 배열 반환하도록 안전 처리
+// API 3-A. 입찰공고 — 단지 코드별 조회
+// 국토교통부_공동주택 입찰공고 정보제공 서비스
+// data.go.kr ID: 15058166
+// 엔드포인트: /ApHusBidPblancInfoService/getAphusBidPblancListInfoSearch
+//
+// ⚠️  data.go.kr 에서 반드시 별도 신청 필요:
+//   1) https://www.data.go.kr/data/15058166/openapi.do 접속
+//   2) "활용신청" → 즉시 자동 승인
+//   3) 마이페이지 → 개발계정 → End Point 확인 (동일 serviceKey 사용 가능)
 // ============================================================
 export async function fetchBidAnnouncements(
-  kaptCode: string
+  kaptCode: string,
+  opts: { pageNo?: number; numOfRows?: number } = {}
 ): Promise<ApiResult<BidAnnouncementRaw[]>> {
-  // TODO: data.go.kr 에서 "공동주택 입찰공고" API 신청 후 정확한 엔드포인트로 교체
-  void kaptCode;
-  return { ok: true, data: [] };
+  const url = buildUrl(
+    '/ApHusBidPblancInfoService/getAphusBidPblancListInfoSearch',
+    {
+      kaptCode,
+      pageNo: opts.pageNo ?? 1,
+      numOfRows: opts.numOfRows ?? 100,
+    }
+  );
+  const res = await fetchWithRetry<any>(url);
+  if (!res.ok) return res;
+
+  const items = extractItems<Record<string, unknown>>(res.data).map((raw) => {
+    const item: BidAnnouncementRaw = {
+      ...raw,
+      // 공식 응답 필드명 정규화 (Swagger 확인 후 조정 가능)
+      bidNo:       pickStr(raw, 'bidNo', 'bddprNo', 'pbancNo') ?? undefined,
+      bidTitle:    pickStr(raw, 'bidTitle', 'pbancNm', 'bidNm', 'subject') ?? undefined,
+      bidWorkType: pickStr(raw, 'bidWorkType', 'bidWorkTy', 'workType', 'cnstrtnNm') ?? undefined,
+      bidAmount:   pickIntFromAny(raw, 'bidAmount', 'estimatedAmt', 'presmptAmt', 'amount') ?? undefined,
+      noticeDate:  pickStr(raw, 'noticeDate', 'pbancBgn', 'bidBeginDt', 'registDt') ?? undefined,
+      closeDate:   pickStr(raw, 'closeDate', 'pbancEnd', 'bidCloseDt', 'deadline') ?? undefined,
+      status:      pickStr(raw, 'status', 'pbancSttus', 'bidSttus') ?? 'active',
+    };
+    return item;
+  });
+
+  return { ok: true, data: items };
+}
+
+// ============================================================
+// API 3-B. 입찰공고 — 날짜 범위 전체 조회 (수집 스크립트용)
+// 단지별 순회 없이 기간으로 한 번에 가져오는 방식
+// ============================================================
+export async function fetchBidsByDateRange(opts: {
+  startYmd: string;   // 'YYYYMMDD'
+  endYmd: string;     // 'YYYYMMDD'
+  sidoCode?: string;
+  pageNo?: number;
+  numOfRows?: number;
+}): Promise<ApiResult<BidAnnouncementRaw[]>> {
+  const params: Record<string, string | number> = {
+    searchStartYmd: opts.startYmd,
+    searchEndYmd:   opts.endYmd,
+    pageNo:         opts.pageNo ?? 1,
+    numOfRows:      opts.numOfRows ?? 999,
+  };
+  if (opts.sidoCode) params.sidoCode = opts.sidoCode;
+
+  const url = buildUrl(
+    '/ApHusBidPblancInfoService/getAphusBidPblancDateListInfoSearch',
+    params
+  );
+  const res = await fetchWithRetry<any>(url);
+  if (!res.ok) return res;
+
+  const items = extractItems<Record<string, unknown>>(res.data).map((raw) => ({
+    ...raw,
+    bidNo:       pickStr(raw, 'bidNo', 'bddprNo', 'pbancNo') ?? undefined,
+    bidTitle:    pickStr(raw, 'bidTitle', 'pbancNm', 'bidNm', 'subject') ?? undefined,
+    bidWorkType: pickStr(raw, 'bidWorkType', 'bidWorkTy', 'workType', 'cnstrtnNm') ?? undefined,
+    bidAmount:   pickIntFromAny(raw, 'bidAmount', 'estimatedAmt', 'presmptAmt', 'amount') ?? undefined,
+    noticeDate:  pickStr(raw, 'noticeDate', 'pbancBgn', 'bidBeginDt', 'registDt') ?? undefined,
+    closeDate:   pickStr(raw, 'closeDate', 'pbancEnd', 'bidCloseDt', 'deadline') ?? undefined,
+    status:      pickStr(raw, 'status', 'pbancSttus', 'bidSttus') ?? 'active',
+    // 날짜 범위 검색은 kaptCode 가 응답에 포함됨
+    kaptCode:    pickStr(raw, 'kaptCode', 'kaptCd') ?? undefined,
+  } as BidAnnouncementRaw));
+
+  return { ok: true, data: items };
+}
+
+// ============================================================
+// API 3-C. 수의계약 공지 — 단지 코드별 조회
+// 국토교통부_공동주택 수의계약 공지 정보제공 서비스
+// data.go.kr ID: 15057758
+// 서비스/메서드명은 입찰공고와 동일한 명명 규칙으로 추정:
+//   /ApHusSdmCntrctNtcInfoOfferService/getAphusSdmCntrctNtcListInfoSearch
+// 정확한 명칭은 Swagger 확인 후 환경변수로 override 가능:
+//   KAPT_SDM_SERVICE_NAME    (기본 ApHusSdmCntrctNtcInfoOfferService)
+//   KAPT_SDM_LIST_METHOD     (기본 getAphusSdmCntrctNtcListInfoSearch)
+//   KAPT_SDM_DATE_METHOD     (기본 getAphusSdmCntrctNtcDateListInfoSearch)
+//
+// ⚠️  data.go.kr 에서 별도 활용신청 필요:
+//   https://www.data.go.kr/data/15057758/openapi.do
+// ============================================================
+const SDM_SERVICE = process.env.KAPT_SDM_SERVICE_NAME || 'ApHusSdmCntrctNtcInfoOfferService';
+const SDM_LIST_METHOD = process.env.KAPT_SDM_LIST_METHOD || 'getAphusSdmCntrctNtcListInfoSearch';
+const SDM_DATE_METHOD = process.env.KAPT_SDM_DATE_METHOD || 'getAphusSdmCntrctNtcDateListInfoSearch';
+
+export async function fetchNegotiatedContracts(
+  kaptCode: string,
+  opts: { pageNo?: number; numOfRows?: number } = {}
+): Promise<ApiResult<NegotiatedContractRaw[]>> {
+  const url = buildUrl(
+    `/${SDM_SERVICE}/${SDM_LIST_METHOD}`,
+    {
+      kaptCode,
+      pageNo: opts.pageNo ?? 1,
+      numOfRows: opts.numOfRows ?? 100,
+    }
+  );
+  const res = await fetchWithRetry<any>(url);
+  if (!res.ok) return res;
+
+  const items = extractItems<Record<string, unknown>>(res.data).map((raw) => {
+    const item: NegotiatedContractRaw = {
+      ...raw,
+      ntceNo:         pickStr(raw, 'ntceNo', 'pbancNo', 'cntrctNo', 'noticeNo') ?? undefined,
+      ntceTitle:      pickStr(raw, 'ntceTitle', 'pbancNm', 'ntceNm', 'subject', 'title') ?? undefined,
+      workType:       pickStr(raw, 'workType', 'bidWorkType', 'cnstrtnNm', 'wrkType') ?? undefined,
+      contractAmount: pickIntFromAny(raw, 'contractAmount', 'cntrctAmt', 'ctrtAmt', 'amount', 'presmptAmt') ?? undefined,
+      ntceDate:       pickStr(raw, 'ntceDate', 'pbancBgn', 'noticeDate', 'registDt') ?? undefined,
+      contractDate:   pickStr(raw, 'contractDate', 'cntrctYmd', 'ctrtYmd', 'ctrtDt') ?? undefined,
+      status:         pickStr(raw, 'status', 'pbancSttus', 'cntrctSttus') ?? 'active',
+    };
+    return item;
+  });
+
+  return { ok: true, data: items };
+}
+
+// 수의계약 공지 — 날짜 범위 전체 조회 (수집 스크립트용)
+export async function fetchNegotiatedByDateRange(opts: {
+  startYmd: string;   // 'YYYYMMDD'
+  endYmd: string;     // 'YYYYMMDD'
+  sidoCode?: string;
+  pageNo?: number;
+  numOfRows?: number;
+}): Promise<ApiResult<NegotiatedContractRaw[]>> {
+  const params: Record<string, string | number> = {
+    searchStartYmd: opts.startYmd,
+    searchEndYmd:   opts.endYmd,
+    pageNo:         opts.pageNo ?? 1,
+    numOfRows:      opts.numOfRows ?? 999,
+  };
+  if (opts.sidoCode) params.sidoCode = opts.sidoCode;
+
+  const url = buildUrl(`/${SDM_SERVICE}/${SDM_DATE_METHOD}`, params);
+  const res = await fetchWithRetry<any>(url);
+  if (!res.ok) return res;
+
+  const items = extractItems<Record<string, unknown>>(res.data).map((raw) => ({
+    ...raw,
+    ntceNo:         pickStr(raw, 'ntceNo', 'pbancNo', 'cntrctNo', 'noticeNo') ?? undefined,
+    ntceTitle:      pickStr(raw, 'ntceTitle', 'pbancNm', 'ntceNm', 'subject', 'title') ?? undefined,
+    workType:       pickStr(raw, 'workType', 'bidWorkType', 'cnstrtnNm', 'wrkType') ?? undefined,
+    contractAmount: pickIntFromAny(raw, 'contractAmount', 'cntrctAmt', 'ctrtAmt', 'amount', 'presmptAmt') ?? undefined,
+    ntceDate:       pickStr(raw, 'ntceDate', 'pbancBgn', 'noticeDate', 'registDt') ?? undefined,
+    contractDate:   pickStr(raw, 'contractDate', 'cntrctYmd', 'ctrtYmd', 'ctrtDt') ?? undefined,
+    status:         pickStr(raw, 'status', 'pbancSttus', 'cntrctSttus') ?? 'active',
+    // 날짜 범위 조회는 응답에 kaptCode 포함됨
+    kaptCode:       pickStr(raw, 'kaptCode', 'kaptCd') ?? undefined,
+  } as NegotiatedContractRaw));
+
+  return { ok: true, data: items };
 }
 
 // ============================================================
 // API 4. 장기수선충당금 잔액 (특정 단지) — V2 엔드포인트
-// 공동주택관리비(장기수선충당금) 정보제공 서비스 (AptRepairsCostServiceV2)
-// 메서드: getHsmpResrvFndBalanceInfoV2 (단지별 충당금잔액 정보조회)
-// ============================================================
+// 공동주택관리 서비스" — 관련 API 없는 경우 빈 배열 반환
 export async function fetchMaintenanceFund(
   kaptCode: string
 ): Promise<ApiResult<MaintenanceFundRaw[]>> {
-  // 공공 API 는 검색월 데이터가 없으면 빈 응답을 줄 때가 있어
-  // 전전월 → 전전전월 → 전전전전월 순으로 최대 4회 시도.
-  const now = new Date();
-  let lastErr: ApiResult<MaintenanceFundRaw[]> | null = null;
+  // K-apt 공식 API: 장기수선충당금 잔액 정보
+  const url = buildUrl('/ApHusLtrmRprFundService/getApHusLtrmRprFundList', {
+    kaptCode,
+    pageNo: 1,
+    numOfRows: 12,  // 최근 12개월
+  });
+  const res = await fetchWithRetry<any>(url);
+  if (!res.ok) return res;
 
-  for (let offset = 2; offset <= 5; offset++) {
-    const d = new Date(now.getFullYear(), now.getMonth() - offset, 1);
-    const yyyymm = `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}`;
-    const url = buildUrl(
-      '/AptRepairsCostServiceV2/getHsmpResrvFndBalanceInfoV2',
-      { kaptCode, searchDate: yyyymm },
-    );
-    const res = await fetchWithRetry<any>(url);
-    if (!res.ok) {
-      lastErr = res as ApiResult<MaintenanceFundRaw[]>;
-      // 키/엔드포인트 문제면 다음 월 시도해도 의미 없음 → 즉시 반환
-      if (/SERVICE_KEY|UNAUTHORIZED|NOT_REGISTERED/i.test(res.error)) return res as ApiResult<MaintenanceFundRaw[]>;
-      continue;
-    }
-    const raw = extractItems<Record<string, unknown>>(res.data);
-    if (raw.length === 0) continue;
+  const items = extractItems<Record<string, unknown>>(res.data).map((raw) => ({
+    yearMonth:     pickStr(raw, 'yearMonth', 'mngMt', 'ym') ?? null,
+    fundBalance:   pickIntFromAny(raw, 'fundBalance', 'ltrmRprAmt', 'blncAmt') ?? null,
+    monthlyAmount: pickIntFromAny(raw, 'monthlyAmount', 'monthlyAmt', 'mnthlyChrg') ?? null,
+    ...raw,
+  } as MaintenanceFundRaw));
 
-    const items: MaintenanceFundRaw[] = raw.map((r) => ({
-      ...r,
-      yearMonth:
-        pickStr(r, 'yearMonth', 'srchymd', 'srchYm', 'kaptResrv') ?? yyyymm,
-      fundBalance: pickIntFromAny(r, 'fundBalance', 'sumResrvBalance', 'resrvBalance', 'kaptResrv', 'balance'),
-      monthlyAmount: pickIntFromAny(r, 'monthlyAmount', 'resrvAmount', 'kaptResrvMonth', 'monthAmount'),
-    }));
-    return { ok: true, data: items };
-  }
-
-  return lastErr ?? { ok: true, data: [] };
+  return { ok: true, data: items };
 }
 
 // ============================================================
-// API 5. 단지 기본 정보 (특정 단지) — V4 엔드포인트
-// 공동주택 기본 정보제공 서비스 (AptBasisInfoServiceV4)
-// 준공연도, 세대수, 동수, 관리방식 등 — 우리 점수 계산의 핵심 입력
+// API 5. 단지 기본정보 (특정 단지) — 준공연도 보완용
 // ============================================================
 export async function fetchComplexBasicInfo(
   kaptCode: string
 ): Promise<ApiResult<ComplexRaw>> {
-  // 표준 V4 메서드명 — 확인 필요 시 data.go.kr 명세 참고
-  const url = buildUrl('/AptBasisInfoServiceV4/getAphusBassInfoV4', {
+  const url = buildUrl('/ApHusKaptInfoService/getAphusBassInfoSearch', {
     kaptCode,
   });
   const res = await fetchWithRetry<any>(url);
   if (!res.ok) return res;
-  const items = extractItems<ComplexRaw>(res.data);
+
+  const items = extractItems<Record<string, unknown>>(res.data);
   if (items.length === 0) {
-    return {
-      ok: false,
-      error: `단지 기본정보 응답에서 item 없음 (kaptCode=${kaptCode})`,
-      retryable: false,
-    };
+    return { ok: false, error: '단지 기본정보 없음', retryable: false };
   }
-  return { ok: true, data: items[0] };
+  const raw = items[0];
+  return {
+    ok: true,
+    data: {
+      kaptCode: String(raw.kaptCode ?? raw.kaptCd ?? kaptCode),
+      kaptName: String(raw.kaptName ?? raw.kaptNm ?? ''),
+      kaptAddr: pickStr(raw, 'kaptAddr', 'bjdongAddr', 'rdnmaAddr') ?? undefined,
+      kaptUsedate: pickStr(raw, 'kaptUsedate', 'useAprvYmd', 'useAprDay') ?? undefined,
+      kaptDongCnt: raw.kaptDongCnt ?? raw.dongCnt ?? undefined,
+      kaptdaCnt:   raw.kaptdaCnt ?? raw.hhldCnt ?? undefined,
+      codeMgr:     pickStr(raw, 'codeMgr', 'mgrType', 'mgrSe') ?? undefined,
+      kaptTel:     pickStr(raw, 'kaptTel', 'mgrOfcTelNo', 'tel') ?? undefined,
+      ...raw,
+    } as ComplexRaw,
+  };
 }
 
 // ============================================================
-// 정규화 헬퍼 — Raw → Supabase row
+// normalizeComplex — ComplexRaw → 표준 DB row 형태
 // ============================================================
 export function normalizeComplex(raw: ComplexRaw): {
   kapt_code: string;
@@ -478,42 +643,32 @@ export function normalizeComplex(raw: ComplexRaw): {
   management_type: string | null;
   phone: string | null;
 } {
-  // 사용승인일 'YYYYMMDD' → 연도 추출
-  const useDate = String(raw.kaptUsedate ?? '');
-  const builtYear = useDate.length >= 4 ? parseInt(useDate.slice(0, 4), 10) : null;
+  const builtYearRaw = raw.kaptUsedate ?? '';
+  let built_year: number | null = null;
+  if (typeof builtYearRaw === 'string' && builtYearRaw.length >= 4) {
+    const y = parseInt(builtYearRaw.slice(0, 4), 10);
+    if (y > 1950 && y <= new Date().getFullYear()) built_year = y;
+  }
 
-  // V3 API 시도별/시군구별 목록은 as1~as4 (시도/시군구/읍면동/리) 를 분리해서 제공.
-  // V2 의 kaptAddr/doroJuso 도 호환 유지 (다른 API 응답용)
-  const as1 = raw.as1 ? String(raw.as1).trim() : null;  // 시도
-  const as2 = raw.as2 ? String(raw.as2).trim() : null;  // 시군구
-  const as3 = raw.as3 ? String(raw.as3).trim() : null;  // 읍면동
-  const as4 = raw.as4 ? String(raw.as4).trim() : null;  // 리
-
-  const explicitAddr = String(raw.kaptAddr ?? raw.doroJuso ?? '').trim();
-  const composedAddr = [as1, as2, as3, as4].filter(Boolean).join(' ').trim();
-  const addr = explicitAddr || composedAddr || null;
-
-  // sido / sigungu — V3 에서 as1/as2 우선, 없으면 주소 첫 2단계로 폴백
-  const parts = addr ? addr.split(/\s+/) : [];
-  const sido = as1 || parts[0] || null;
-  const sigungu = as2 || parts[1] || null;
+  const addr = raw.doroJuso ?? raw.kaptAddr ?? null;
+  let sido: string | null = null;
+  let sigungu: string | null = null;
+  if (addr) {
+    const parts = addr.split(' ');
+    sido    = parts[0] ?? null;
+    sigungu = parts[1] ?? null;
+  }
 
   return {
-    kapt_code: String(raw.kaptCode),
-    name: String(raw.kaptName ?? '').trim(),
-    address: addr,
+    kapt_code:       raw.kaptCode,
+    name:            raw.kaptName,
+    address:         typeof addr === 'string' ? addr : null,
     sido,
     sigungu,
-    built_year: Number.isFinite(builtYear as number) ? (builtYear as number) : null,
-    households: toIntOrNull(raw.kaptdaCnt),
-    buildings: toIntOrNull(raw.kaptDongCnt),
+    built_year,
+    households:      typeof raw.kaptdaCnt !== 'undefined' ? Number(raw.kaptdaCnt) || null : null,
+    buildings:       typeof raw.kaptDongCnt !== 'undefined' ? Number(raw.kaptDongCnt) || null : null,
     management_type: raw.codeMgr ? String(raw.codeMgr) : null,
-    phone: raw.kaptTel ? String(raw.kaptTel) : null,
+    phone:           raw.kaptTel ? String(raw.kaptTel) : null,
   };
-}
-
-function toIntOrNull(v: unknown): number | null {
-  if (v == null || v === '') return null;
-  const n = parseInt(String(v), 10);
-  return Number.isFinite(n) ? n : null;
 }

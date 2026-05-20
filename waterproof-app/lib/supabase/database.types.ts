@@ -93,6 +93,15 @@ export interface Proposal {
   after_image_url: string | null;
   won_at: string | null;
   created_at: string;
+  // 007_proposal_email_sending.sql 에서 추가
+  sent_at: string | null;
+  sent_to: string | null;
+  sent_count: number;
+  // 008_proposal_sharing.sql 에서 추가 (외부 공유 링크)
+  share_url: string | null;
+  share_token: string | null;
+  share_expires_at: string | null;
+  share_created_at: string | null;
 }
 
 export interface ComplexPredictionView {
@@ -203,16 +212,28 @@ export interface Database {
     };
     Views: {
       complex_predictions: {
-        Row: ComplexPredictionView;
-        Relationships: [];
-      };
-      sales_tracking_with_complex: {
-        Row: SalesTrackingWithComplexView;
+         Row: ComplexPredictionView;
         Relationships: [];
       };
     };
-    Functions: { [k: string]: never };
-    Enums: { [k: string]: never };
-    CompositeTypes: { [k: string]: never };
+    Functions: Record<string, never>;
+    Enums: Record<string, never>;
   };
+}
+
+// ============================================================
+// 수의계약 (007_negotiated_contracts.sql)
+// ============================================================
+export interface NegotiatedContract {
+  id: string;
+  complex_id: string;
+  announcement_no: string | null;
+  title: string | null;
+  work_type: string | null;
+  contract_amount: number | null;
+  announced_at: string | null;
+  contract_date: string | null;
+  status: string;
+  notified: boolean;
+  created_at: string;
 }

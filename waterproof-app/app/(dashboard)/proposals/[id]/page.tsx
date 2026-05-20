@@ -26,7 +26,7 @@ export default async function ProposalDetailPage({
   const supabase = await createClient();
   const { data, error } = await supabase
     .from('proposals')
-    .select('id, title, status, content, won_at, created_at, complex_id, complexes(name)')
+    .select('id, title, status, content, won_at, created_at, complex_id, sent_at, sent_to, sent_count, share_url, share_expires_at, complexes(name)')
     .eq('id', id)
     .maybeSingle();
 
@@ -49,6 +49,11 @@ export default async function ProposalDetailPage({
     won_at: string | null;
     created_at: string;
     complex_id: string | null;
+    sent_at: string | null;
+    sent_to: string | null;
+    sent_count: number | null;
+    share_url: string | null;
+    share_expires_at: string | null;
     complexes: { name: string } | { name: string }[] | null;
   };
   const row = data as unknown as Row;
@@ -81,12 +86,17 @@ export default async function ProposalDetailPage({
         id={row.id}
         proposal={row.content.proposal}
         status={(row.status as ProposalStatus) ?? 'draft'}
-        complexName={complexName}
+            complexName={complexName}
         companyName={companyName}
         ownerName={ownerName}
         workScope={workScope}
         createdAt={row.created_at}
         wonAt={row.won_at}
+        sentAt={row.sent_at}
+        sentTo={row.sent_to}
+        sentCount={row.sent_count ?? 0}
+        shareUrl={row.share_url}
+        shareExpiresAt={row.share_expires_at}
       />
     </div>
   );

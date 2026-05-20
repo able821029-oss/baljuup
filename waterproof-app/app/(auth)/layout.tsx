@@ -11,6 +11,7 @@
 import Link from "next/link";
 import { ArrowLeft, HelpCircle, BadgeCheck, ClipboardCheck } from "lucide-react";
 import { Logo } from "@/components/brand/Logo";
+import { BusinessFooter } from "@/components/legal/BusinessFooter";
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -67,6 +68,9 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
           </div>
         </div>
       </main>
+
+      {/* 사업자정보 푸터 — 전자상거래법 §13 의무 표시 */}
+      <BusinessFooter />
     </div>
   );
 }

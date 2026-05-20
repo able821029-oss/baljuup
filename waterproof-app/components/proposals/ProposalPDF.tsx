@@ -59,24 +59,39 @@ const COLORS = {
   blueBg: '#EFF6FF',
 };
 
+// 강조 포인트 컬러 (요청 사양: #1d4ed8)
+const EMPH_BLUE = '#1d4ed8';
+
+// 페이지 여백 — 인쇄 시 잘림 방지 안전 영역
+// 좌우 50pt, 상하 40pt 기준에 헤더(상단 약 50pt)/푸터(하단 약 20pt) 공간 확보
+const PAGE_PADDING_TOP = 90;       // 40 (안전 여백) + ~50 (헤더 차지 영역)
+const PAGE_PADDING_BOTTOM = 60;    // 40 (안전 여백) + ~20 (푸터 차지 영역)
+const PAGE_PADDING_X = 50;
+
 const styles = StyleSheet.create({
   page: {
     fontFamily: 'NanumGothic',
     fontSize: 10,
     color: COLORS.text,
-    padding: 40,
+    paddingTop: PAGE_PADDING_TOP,
+    paddingBottom: PAGE_PADDING_BOTTOM,
+    paddingLeft: PAGE_PADDING_X,
+    paddingRight: PAGE_PADDING_X,
     lineHeight: 1.5,
   },
 
-  // 상단 헤더 바
+  // 상단 헤더 바 (모든 페이지 반복 — absolute + fixed)
   headerBar: {
+    position: 'absolute',
+    top: 40,
+    left: PAGE_PADDING_X,
+    right: PAGE_PADDING_X,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-end',
     borderBottomWidth: 2,
     borderBottomColor: COLORS.navy,
     paddingBottom: 8,
-    marginBottom: 18,
   },
   headerBrand: {
     flexDirection: 'column',
@@ -119,20 +134,25 @@ const styles = StyleSheet.create({
 
   // 섹션
   section: {
-    marginBottom: 14,
+    marginBottom: 16,
   },
   sectionLabel: {
-    fontSize: 9,
+    fontSize: 14,
     fontWeight: 700,
-    color: COLORS.navy,
-    letterSpacing: 1,
-    textTransform: 'uppercase',
-    marginBottom: 6,
+    color: COLORS.navyDark,
+    marginBottom: 8,
   },
   sectionBody: {
     fontSize: 10,
     color: COLORS.text,
-    lineHeight: 1.6,
+    lineHeight: 1.5,
+  },
+
+  // 강조 수치 (견적액, 충당금 등) — 12pt Bold, 포인트 컬러
+  emphNumber: {
+    fontSize: 12,
+    fontWeight: 700,
+    color: EMPH_BLUE,
   },
 
   // 요약 박스
@@ -146,14 +166,14 @@ const styles = StyleSheet.create({
   summaryText: {
     fontSize: 11,
     fontWeight: 700,
-    lineHeight: 1.6,
+    lineHeight: 1.5,
     color: COLORS.navyDark,
   },
 
   // 강점 리스트
   whyItem: {
     flexDirection: 'row',
-    marginBottom: 5,
+    marginBottom: 6,
   },
   whyBullet: {
     width: 14,
@@ -164,7 +184,7 @@ const styles = StyleSheet.create({
   whyText: {
     flex: 1,
     fontSize: 10,
-    lineHeight: 1.55,
+    lineHeight: 1.5,
   },
 
   // 하자보증 박스
@@ -175,7 +195,7 @@ const styles = StyleSheet.create({
   },
   warrantyText: {
     fontSize: 10,
-    lineHeight: 1.55,
+    lineHeight: 1.5,
   },
 
   // CTA 박스
@@ -186,20 +206,20 @@ const styles = StyleSheet.create({
     borderColor: COLORS.accent,
     borderRadius: 4,
     padding: 14,
-    textAlign: 'center',
   },
   ctaText: {
     fontSize: 11,
     fontWeight: 700,
     color: COLORS.navyDark,
+    textAlign: 'center',
   },
 
-  // 푸터
+  // 푸터 (모든 페이지 반복 — absolute + fixed)
   footer: {
     position: 'absolute',
     bottom: 25,
-    left: 40,
-    right: 40,
+    left: PAGE_PADDING_X,
+    right: PAGE_PADDING_X,
     flexDirection: 'row',
     justifyContent: 'space-between',
     fontSize: 8,
@@ -241,8 +261,8 @@ export function ProposalPDFDocument({
       subject={`${complexName} ${workScope} 제안서`}
     >
       <Page size="A4" style={styles.page}>
-        {/* 헤더 */}
-        <View style={styles.headerBar}>
+        {/* 헤더 (모든 페이지 반복 — fixed) */}
+        <View style={styles.headerBar} fixed>
           <View style={styles.headerBrand}>
             {/* 로고 — react-pdf 는 SVG 의 글로우/필터 미지원이므로 PNG 사용 */}
             <Image src="/logo.png" style={styles.logo} />
@@ -321,26 +341,21 @@ export function ProposalPDFDocument({
 
 // ============================================================
 // 다운로드 트리거 — 외부에서 호출하는 함수
+// =================
+// ============================================================
+// 다운로드 트리거 — 외부에서 호출하는 함수
 // ============================================================
 export async function downloadProposalPdf(props: ProposalPDFProps): Promise<void> {
-  registerFontsOnce();
-
-  // PDF 렌더링 → Blob
+  const { pdf } = await import('@react-pdf/renderer');
   const blob = await pdf(<ProposalPDFDocument {...props} />).toBlob();
-
-  // 파일명: '{단지명}_제안서_{YYYY-MM-DD}.pdf'
-  const yyyymmdd = new Date().toISOString().slice(0, 10);
-  const safeName = props.complexName.replace(/[\\/:*?"<>|]/g, '').slice(0, 40);
-  const filename = `${safeName}_제안서_${yyyymmdd}.pdf`;
-
-  // 다운로드 트리거
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = filename;
+  a.download = `발주Up_제안서_${props.complexName}_${new Date().toISOString().slice(0, 10)}.pdf`;
   document.body.appendChild(a);
   a.click();
-  document.body.removeChild(a);
-  // 메모리 해제 (즉시 revoke 하면 일부 브라우저에서 다운로드 취소될 수 있어 약간 지연)
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  setTimeout(() => {
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }, 100);
 }

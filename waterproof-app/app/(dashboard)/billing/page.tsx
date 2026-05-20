@@ -14,6 +14,11 @@ import Link from 'next/link';
 
 export const revalidate = 0;
 
+type BillingSearchParams = {
+  canceled?: string;
+  refunded?: string;
+};
+
 const FEATURES: Record<PlanCode, string[]> = {
   starter: [
     '서울 단지 전체 DB',
@@ -37,7 +42,12 @@ const FEATURES: Record<PlanCode, string[]> = {
   ],
 };
 
-export default async function BillingPage() {
+export default async function BillingPage({
+  searchParams,
+}: {
+  searchParams?: Promise<BillingSearchParams> | BillingSearchParams;
+}) {
+  const sp = searchParams ? await Promise.resolve(searchParams) : {};
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
@@ -63,6 +73,10 @@ export default async function BillingPage() {
 
   const customerKey = `cust_${user.id.replace(/-/g, '')}`;
 
+  // 취소/환불 후 안내 배너
+  const canceledFlag = sp.canceled === '1';
+  const refundedAmount = sp.refunded ? Number(sp.refunded) : null;
+
   return (
     <div className="mx-auto max-w-5xl space-y-5">
       <div>
@@ -73,6 +87,17 @@ export default async function BillingPage() {
             : '발주Up의 모든 기능을 사용하려면 구독을 시작하세요.'}
         </p>
       </div>
+
+      {canceledFlag && (
+        <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+          구독 취소가 완료되었습니다. 현재 결제 주기 종료일까지는 모든 기능을 계속 이용하실 수 있습니다.
+        </div>
+      )}
+      {refundedAmount != null && Number.isFinite(refundedAmount) && refundedAmount > 0 && (
+        <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+          {refundedAmount.toLocaleString()}원 환불 요청이 접수되었습니다. 카드사 정책에 따라 영업일 기준 3~5일 내 처리됩니다.
+        </div>
+      )}
 
       {sub && sub.status === 'active' ? (
         <CurrentSubscription sub={sub} />

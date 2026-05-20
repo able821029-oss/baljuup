@@ -185,12 +185,15 @@ export default async function SettingsPage() {
       {/* 푸터 */}
       <footer className="pb-8 pt-4 text-center">
         <p className="text-xs text-slate-400">버전 v0.1.0 (베타)</p>
-        <div className="mt-2 flex justify-center gap-4">
+        <div className="mt-2 flex flex-wrap justify-center gap-x-4 gap-y-1">
           <Link href="/terms" className="text-xs text-on-surface-var hover:underline">
             이용약관
           </Link>
           <Link href="/privacy" className="text-xs font-bold text-on-surface-var hover:underline">
             개인정보처리방침
+          </Link>
+          <Link href="/refund" className="text-xs text-on-surface-var hover:underline">
+            환불·청약철회
           </Link>
         </div>
         <p className="mt-4 text-[10px] text-slate-300">

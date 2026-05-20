@@ -16,15 +16,42 @@ import { AlertCircle, ChevronRight, Loader2 } from "lucide-react";
 import { signup, type SignupState } from "./actions";
 
 const REGIONS = ["서울", "경기", "인천", "강원", "충청", "전라", "경상", "제주"];
+const MARKETING_CHANNELS = [
+  { value: "email", label: "이메일" },
+  { value: "sms", label: "문자(SMS)" },
+  { value: "kakao", label: "카카오 알림톡" },
+] as const;
 
 export default function SignupPage() {
   const [state, formAction] = useFormState<SignupState, FormData>(signup, null);
   const [regions, setRegions] = useState<string[]>(["서울", "경기"]);
   const [phoneVerified, setPhoneVerified] = useState(false);
 
+  // 동의 상태 (체크된 항목 시각화 + "전체 동의" 헬퍼)
+  const [agreeTerms, setAgreeTerms] = useState(false);
+  const [agreePrivacy, setAgreePrivacy] = useState(false);
+  const [agreeAge14, setAgreeAge14] = useState(false);
+  const [agreeMarketing, setAgreeMarketing] = useState(false);
+  const [agreeNightMarketing, setAgreeNightMarketing] = useState(false);
+  const [marketingChannels, setMarketingChannels] = useState<string[]>([]);
+
   function toggleRegion(r: string) {
     setRegions((cur) => (cur.includes(r) ? cur.filter((x) => x !== r) : [...cur, r]));
   }
+  function toggleMarketingChannel(c: string) {
+    setMarketingChannels((cur) => (cur.includes(c) ? cur.filter((x) => x !== c) : [...cur, c]));
+  }
+  function setAllAgreed(v: boolean) {
+    setAgreeTerms(v);
+    setAgreePrivacy(v);
+    setAgreeAge14(v);
+    setAgreeMarketing(v);
+    setAgreeNightMarketing(v);
+    if (!v) setMarketingChannels([]);
+    else if (marketingChannels.length === 0) setMarketingChannels(["email", "kakao"]);
+  }
+  const allAgreed =
+    agreeTerms && agreePrivacy && agreeAge14 && agreeMarketing && agreeNightMarketing;
 
   const fe = state?.fieldErrors ?? {};
 
@@ -172,6 +199,105 @@ export default function SignupPage() {
           </div>
         </div>
 
+        {/* ── 약관 동의 (정보통신망법 §50, 개보법 §22 — 필수 명시 체크) ── */}
+        <section className="space-y-3 rounded-xl border border-slate-200 bg-white p-4">
+          <header className="flex items-center justify-between border-b border-slate-100 pb-2">
+            <h3 className="text-sm font-bold text-on-surface">약관 동의</h3>
+            <label className="inline-flex cursor-pointer items-center gap-2 text-xs font-semibold text-on-surface-var">
+              <input
+                type="checkbox"
+                checked={allAgreed}
+                onChange={(e) => setAllAgreed(e.target.checked)}
+                className="size-4 cursor-pointer rounded border-slate-300 text-accent focus:ring-2 focus:ring-accent/40"
+              />
+              전체 동의
+            </label>
+          </header>
+
+          <ConsentRow
+            name="agreeTerms"
+            required
+            checked={agreeTerms}
+            onChange={setAgreeTerms}
+            label="이용약관 동의"
+            linkHref="/terms"
+          />
+          <ConsentRow
+            name="agreePrivacy"
+            required
+            checked={agreePrivacy}
+            onChange={setAgreePrivacy}
+            label="개인정보 수집·이용 동의"
+            linkHref="/privacy"
+          />
+          <ConsentRow
+            name="agreeAge14"
+            required
+            checked={agreeAge14}
+            onChange={setAgreeAge14}
+            label="만 14세 이상입니다"
+          />
+          <ConsentRow
+            name="agreeMarketing"
+            checked={agreeMarketing}
+            onChange={(v) => {
+              setAgreeMarketing(v);
+              if (!v) { setMarketingChannels([]); setAgreeNightMarketing(false); }
+              else if (marketingChannels.length === 0) setMarketingChannels(["email", "kakao"]);
+            }}
+            label="이벤트·할인 등 마케팅 정보 수신 (선택)"
+            helper="신규 기능, 할인 이벤트, 단지 추천 등 영업에 도움되는 정보를 받으실 수 있습니다."
+          />
+
+          {agreeMarketing && (
+            <div className="ml-6 space-y-2 rounded-lg border border-blue-100 bg-blue-50/40 p-3">
+              <p className="text-[11px] font-bold text-on-surface-var">수신 채널 (다중 선택)</p>
+              <div className="flex flex-wrap gap-2">
+                {MARKETING_CHANNELS.map((c) => {
+                  const on = marketingChannels.includes(c.value);
+                  return (
+                    <label key={c.value}>
+                      <input
+                        type="checkbox"
+                        name="marketingChannel"
+                        value={c.value}
+                        checked={on}
+                        onChange={() => toggleMarketingChannel(c.value)}
+                        className="sr-only"
+                      />
+                      <span
+                        className={[
+                          "inline-block cursor-pointer rounded-full border px-3 py-1 text-xs transition-colors",
+                          on
+                            ? "border-accent bg-accent text-white"
+                            : "border-slate-300 bg-white text-on-surface-var hover:border-accent",
+                        ].join(" ")}
+                      >
+                        {c.label}
+                      </span>
+                    </label>
+                  );
+                })}
+              </div>
+
+              <ConsentRow
+                name="agreeNightMarketing"
+                checked={agreeNightMarketing}
+                onChange={setAgreeNightMarketing}
+                label="21시~익일 08시 야간 광고성 정보 수신 (선택)"
+                helper="긴급 입찰 정보 등 야간 발송이 필요한 경우에만 사용됩니다."
+              />
+            </div>
+          )}
+
+          {fe.consents && (
+            <p className="flex items-start gap-1.5 text-xs text-red-600">
+              <AlertCircle size={12} className="mt-0.5 shrink-0" />
+              {fe.consents}
+            </p>
+          )}
+        </section>
+
         {/* 에러 표시 */}
         {state?.error && (
           <div className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-xs text-red-800">
@@ -184,11 +310,11 @@ export default function SignupPage() {
         <div className="pt-3">
           <SubmitButton />
           <p className="mt-3 text-center text-xs text-slate-400">
-            가입 시 발주Up의{" "}
-            <Link href="/terms" className="underline hover:text-accent">이용약관</Link>
-            {" "}및{" "}
-            <Link href="/privacy" className="underline hover:text-accent">개인정보처리방침</Link>
-            에 동의하게 됩니다.
+            가입 시{" "}
+            <Link href="/terms" className="underline hover:text-accent">이용약관</Link>,{" "}
+            <Link href="/privacy" className="underline hover:text-accent">개인정보처리방침</Link>,{" "}
+            <Link href="/refund" className="underline hover:text-accent">환불정책</Link>
+            을 확인하시기 바랍니다.
           </p>
         </div>
       </form>
@@ -228,6 +354,55 @@ function SubmitButton() {
         </>
       )}
     </button>
+  );
+}
+
+function ConsentRow({
+  name,
+  required,
+  checked,
+  onChange,
+  label,
+  helper,
+  linkHref,
+}: {
+  name: string;
+  required?: boolean;
+  checked: boolean;
+  onChange: (v: boolean) => void;
+  label: string;
+  helper?: string;
+  linkHref?: string;
+}) {
+  return (
+    <div className="flex items-start gap-2.5">
+      <input
+        id={`consent-${name}`}
+        type="checkbox"
+        name={name}
+        checked={checked}
+        onChange={(e) => onChange(e.target.checked)}
+        className="mt-0.5 size-4 cursor-pointer rounded border-slate-300 text-accent focus:ring-2 focus:ring-accent/40"
+      />
+      <div className="min-w-0 flex-1 text-sm">
+        <label htmlFor={`consent-${name}`} className="cursor-pointer font-semibold text-on-surface">
+          {required && <span className="mr-1 text-red-500">[필수]</span>}
+          {!required && <span className="mr-1 text-slate-400">[선택]</span>}
+          {label}
+        </label>
+        {linkHref && (
+          <Link
+            href={linkHref}
+            target="_blank"
+            rel="noopener"
+            className="ml-2 inline-block text-xs font-semibold text-accent underline decoration-blue-200 underline-offset-4 hover:decoration-accent"
+          >
+            전문 보기 →
+          </Link>
+        )}
+        {helper && <p className="mt-0.5 text-xs text-on-surface-var">{helper}</p>}
+      </div>
+    </div>
   );
 }
 

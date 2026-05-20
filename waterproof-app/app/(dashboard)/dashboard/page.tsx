@@ -52,7 +52,7 @@ export default async function DashboardPage() {
     console.error("[dashboard] user profile lookup failed:", err);
   }
 
-  // ── 병렬 조회 (기존 그대로 + 트렌드 차트용 proposals) ────
+  // ── 병렬 조회 (기존 그대로 + 트렌드 차트용 proposals + 수의계약) ────
   const [
     totalRes,
     criticalRes,
@@ -60,6 +60,7 @@ export default async function DashboardPage() {
     wonRes,
     topRes,
     recentBidsRes,
+    recentContractsRes,
     proposalsTrendRes,
   ] = await Promise.all([
     supabase.from("complexes").select("id", { count: "exact", head: true }),
@@ -69,6 +70,10 @@ export default async function DashboardPage() {
     supabase.from("complex_predictions").select("id, name, prediction_score, expected_order_year")
       .order("prediction_score", { ascending: false }).limit(5),
     supabase.from("bid_announcements").select("id, title, work_type, announced_at, complex_id, complexes(name)")
+      .order("announced_at", { ascending: false }).limit(3),
+    // 수의계약 공지 — 입찰공고와 함께 실시간 알림에 표시
+    (supabase.from("negotiated_contracts") as any)
+      .select("id, title, work_type, announced_at, complex_id, complexes(name)")
       .order("announced_at", { ascending: false }).limit(3),
     // 직전 6개월 (이번 달 포함) proposals 생성일 — 트렌드 차트용
     supabase.from("proposals").select("created_at").gte("created_at", startOfMonthsAgoIso(5)),
@@ -82,14 +87,30 @@ export default async function DashboardPage() {
   type TopRow = { id: string; name: string; prediction_score: number; expected_order_year: number | null };
   const top = ((topRes.data ?? []) as unknown) as TopRow[];
 
-  type BidRow = {
+  type AlertRow = {
     id: string; title: string | null; work_type: string | null; announced_at: string | null;
     complex_id: string; complexes: { name: string } | { name: string }[] | null;
   };
-  const bids = (((recentBidsRes.data ?? []) as unknown) as BidRow[]).map((b) => {
-    const cx = Array.isArray(b.complexes) ? b.complexes[0] : b.complexes;
-    return { ...b, complexName: cx?.name ?? "단지" };
-  });
+  type AlertKind = "bid" | "contract";
+  type AlertItem = AlertRow & { complexName: string; kind: AlertKind };
+
+  const flatten = (rows: AlertRow[] | null | undefined, kind: AlertKind): AlertItem[] =>
+    (rows ?? []).map((b) => {
+      const cx = Array.isArray(b.complexes) ? b.complexes[0] : b.complexes;
+      return { ...b, complexName: cx?.name ?? "단지", kind };
+    });
+
+  // 입찰공고 + 수의계약 → 시간순 통합 (최신 6건)
+  const alerts: AlertItem[] = [
+    ...flatten((recentBidsRes.data ?? []) as unknown as AlertRow[], "bid"),
+    ...flatten((recentContractsRes.data ?? []) as unknown as AlertRow[], "contract"),
+  ]
+    .sort((a, b) => {
+      const ta = a.announced_at ? Date.parse(a.announced_at) : 0;
+      const tb = b.announced_at ? Date.parse(b.announced_at) : 0;
+      return tb - ta;
+    })
+    .slice(0, 6);
 
   type TrendRow = { created_at: string };
   const proposalRows = ((proposalsTrendRes.data ?? []) as unknown) as TrendRow[];
@@ -186,36 +207,47 @@ export default async function DashboardPage() {
           </Link>
         </header>
         <div className="divide-y divide-slate-50">
-          {bids.length === 0 && (
+          {alerts.length === 0 && (
             <p className="px-6 py-10 text-center text-xs text-slate-400">
               최근 알림이 없습니다.
             </p>
           )}
-          {bids.map((b) => (
-            <Link
-              key={b.id}
-              href={`/complexes/${b.complex_id}`}
-              className="flex items-start gap-4 p-5 transition-colors active:bg-slate-50"
-            >
-              <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-blue-50">
-                <Megaphone size={22} className="text-accent" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="mb-1.5 flex items-start justify-between">
-                  <span className="rounded-md bg-blue-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-blue-700">
-                    신규 공고
-                  </span>
-                  <span className="text-[11px] font-medium text-slate-400">
-                    {relativeTime(b.announced_at)}
-                  </span>
+          {alerts.map((b) => {
+            const isContract = b.kind === "contract";
+            // 수의계약은 주황 톤, 입찰공고는 파란 톤 — 한눈에 구분
+            const iconBg = isContract ? "bg-orange-50" : "bg-blue-50";
+            const iconColor = isContract ? "text-orange-500" : "text-accent";
+            const badgeBg = isContract ? "bg-orange-100 text-orange-700" : "bg-blue-100 text-blue-700";
+            const badgeLabel = isContract ? "수의계약" : "입찰공고";
+            const fallbackTitle = isContract
+              ? `${b.work_type ?? "공사"} 수의계약 공지`
+              : `${b.work_type ?? "공사"} 입찰공고`;
+            return (
+              <Link
+                key={`${b.kind}-${b.id}`}
+                href={`/complexes/${b.complex_id}`}
+                className="flex items-start gap-4 p-5 transition-colors active:bg-slate-50"
+              >
+                <div className={`flex size-11 shrink-0 items-center justify-center rounded-xl ${iconBg}`}>
+                  <Megaphone size={22} className={iconColor} />
                 </div>
-                <p className="text-sm font-bold text-slate-800">{b.complexName}</p>
-                <p className="mt-1 text-xs leading-relaxed text-slate-500">
-                  {b.title ?? `${b.work_type ?? "공사"} 입찰공고`}
-                </p>
-              </div>
-            </Link>
-          ))}
+                <div className="min-w-0 flex-1">
+                  <div className="mb-1.5 flex items-start justify-between">
+                    <span className={`rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${badgeBg}`}>
+                      {badgeLabel}
+                    </span>
+                    <span className="text-[11px] font-medium text-slate-400">
+                      {relativeTime((b.announced_at) ?? new Date().toISOString())}
+                    </span>
+                  </div>
+                  <p className="text-sm font-bold text-slate-800">{b.complexName}</p>
+                  <p className="mt-1 text-xs leading-relaxed text-slate-500">
+                    {b.title ?? fallbackTitle}
+                  </p>
+                </div>
+              </Link>
+            );
+          })}
         </div>
       </section>
 
@@ -463,52 +495,59 @@ function TrendChart({ data }: { data: Array<{ label: string; count: number }> })
 // 헬퍼
 // ============================================================
 function startOfMonthIso(): string {
-  const d = new Date();
-  return new Date(d.getFullYear(), d.getMonth(), 1).toISOString();
-}
-
-// N개월 전의 1일 (트렌드 쿼리 lower bound)
-function startOfMonthsAgoIso(months: number): string {
-  const d = new Date();
-  return new Date(d.getFullYear(), d.getMonth() - months, 1).toISOString();
-}
-
-// 직전 6개월(이번 달 포함)의 월별 카운트로 집계
-function buildMonthlyCounts(
-  rows: Array<{ created_at: string }>,
-): Array<{ label: string; count: number }> {
   const now = new Date();
-  const result: Array<{ label: string; count: number }> = [];
+  return new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+}
+
+function startOfMonthsAgoIso(months: number): string {
+  const now = new Date();
+  return new Date(now.getFullYear(), now.getMonth() - months, 1).toISOString();
+}
+
+function relativeTime(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime();
+  const mins  = Math.floor(diff / 60_000);
+  const hours = Math.floor(diff / 3_600_000);
+  const days  = Math.floor(diff / 86_400_000);
+  if (mins < 1)  return '방금 전';
+  if (mins < 60) return `${mins}분 전`;
+  if (hours < 24) return `${hours}시간 전`;
+  if (days < 7)  return `${days}일 전`;
+  const d = new Date(iso);
+  return `${d.getMonth() + 1}/${d.getDate()}`;
+}
+
+function truncate(s: string, max = 28): string {
+  return s.length <= max ? s : s.slice(0, max) + '…';
+}
+
+
+// ============================================================
+// 월별 집계 (트렌드 차트)
+// ============================================================
+type TrendRow = { created_at: string };
+
+function buildMonthlyCounts(rows: TrendRow[]): { label: string; count: number }[] {
+  const now = new Date();
+  const months: { label: string; count: number }[] = [];
   for (let i = 5; i >= 0; i--) {
     const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    const y = d.getFullYear();
-    const m = d.getMonth();
-    const count = rows.reduce((acc, r) => {
-      const rd = new Date(r.created_at);
-      return rd.getFullYear() === y && rd.getMonth() === m ? acc + 1 : acc;
-    }, 0);
-    result.push({ label: `${m + 1}월`, count });
+    months.push({
+      label: `${d.getMonth() + 1}월`,
+      count: 0,
+    });
   }
-  return result;
+  for (const row of rows) {
+    const d = new Date(row.created_at);
+    const monthsAgo = (now.getFullYear() - d.getFullYear()) * 12 + (now.getMonth() - d.getMonth());
+    if (monthsAgo >= 0 && monthsAgo <= 5) {
+      months[5 - monthsAgo].count++;
+    }
+  }
+  return months;
 }
 
 function currentQuarter(): string {
-  const d = new Date();
-  const q = Math.floor(d.getMonth() / 3) + 1;
-  return `${d.getFullYear()}.Q${q}`;
-}
-
-function relativeTime(iso: string | null): string {
-  if (!iso) return "";
-  const t = new Date(iso).getTime();
-  const diff = Date.now() - t;
-  const min = Math.floor(diff / 60000);
-  if (min < 1) return "방금 전";
-  if (min < 60) return `${min}분 전`;
-  const h = Math.floor(min / 60);
-  if (h < 24) return `${h}시간 전`;
-  const day = Math.floor(h / 24);
-  if (day === 1) return "어제";
-  if (day < 7) return `${day}일 전`;
-  return new Date(iso).toLocaleDateString("ko-KR");
+  const m = new Date().getMonth();
+  return `Q${Math.floor(m / 3) + 1}`;
 }

@@ -10,16 +10,22 @@
  *      이메일 확인 OFF 이면 즉시 /dashboard 로 이동
  */
 
+import { headers } from 'next/headers';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
+import { TERMS_VERSION, PRIVACY_VERSION } from '@/lib/legal';
 
 export type SignupState = {
   error?: string;
-  fieldErrors?: Partial<Record<'email' | 'password' | 'companyName' | 'ownerName' | 'phone', string>>;
+  fieldErrors?: Partial<Record<
+    'email' | 'password' | 'companyName' | 'ownerName' | 'phone' | 'consents',
+    string
+  >>;
 } | null;
 
 const VALID_REGIONS = ['서울', '경기', '인천', '강원', '충청', '전라', '경상', '제주'];
+const VALID_MARKETING_CHANNELS = ['email', 'sms', 'kakao'] as const;
 
 export async function signup(_prev: SignupState, formData: FormData): Promise<SignupState> {
   const email = String(formData.get('email') ?? '').trim().toLowerCase();
@@ -28,6 +34,17 @@ export async function signup(_prev: SignupState, formData: FormData): Promise<Si
   const ownerName = String(formData.get('ownerName') ?? '').trim();
   const phone = String(formData.get('phone') ?? '').replace(/[^0-9]/g, '');
   const regions = formData.getAll('region').map(String).filter((r) => VALID_REGIONS.includes(r));
+
+  // 동의 (필수: terms, privacy, age14 / 선택: marketing, nightMarketing, 채널 다중)
+  const agreeTerms = formData.get('agreeTerms') === 'on';
+  const agreePrivacy = formData.get('agreePrivacy') === 'on';
+  const agreeAge14 = formData.get('agreeAge14') === 'on';
+  const agreeMarketing = formData.get('agreeMarketing') === 'on';
+  const agreeNightMarketing = formData.get('agreeNightMarketing') === 'on';
+  const marketingChannels = formData.getAll('marketingChannel')
+    .map(String)
+    .filter((c): c is typeof VALID_MARKETING_CHANNELS[number] =>
+      (VALID_MARKETING_CHANNELS as readonly string[]).includes(c));
 
   // 검증
   const fieldErrors: NonNullable<SignupState>['fieldErrors'] = {};
@@ -41,6 +58,9 @@ export async function signup(_prev: SignupState, formData: FormData): Promise<Si
   if (!ownerName) fieldErrors.ownerName = '대표자명을 입력해주세요.';
   if (!phone || phone.length < 10) {
     fieldErrors.phone = '연락처 형식이 올바르지 않습니다.';
+  }
+  if (!agreeTerms || !agreePrivacy || !agreeAge14) {
+    fieldErrors.consents = '이용약관, 개인정보처리방침, 만 14세 이상 확인은 필수 동의 항목입니다.';
   }
 
   if (Object.keys(fieldErrors).length) {
@@ -74,6 +94,8 @@ export async function signup(_prev: SignupState, formData: FormData): Promise<Si
     const trialEndsAt = new Date();
     trialEndsAt.setDate(trialEndsAt.getDate() + 7);
 
+    const now = new Date().toISOString();
+
     const profileRow = {
       id: data.user.id,
       company_name: companyName,
@@ -82,6 +104,17 @@ export async function signup(_prev: SignupState, formData: FormData): Promise<Si
       region: regions.length ? regions : null,
       plan: 'trial',
       trial_ends_at: trialEndsAt.toISOString(),
+      // 필수 동의 — 검증 이후 시점이므로 항상 true
+      terms_agreed_at: now,
+      privacy_agreed_at: now,
+      age14_confirmed_at: now,
+      terms_version: TERMS_VERSION,
+      privacy_version: PRIVACY_VERSION,
+      // 선택 동의
+      marketing_consent_at: agreeMarketing ? now : null,
+      marketing_channels: agreeMarketing && marketingChannels.length > 0 ? marketingChannels : null,
+      night_marketing_consent_at: agreeNightMarketing ? now : null,
+      last_active_at: now,
     };
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -90,6 +123,33 @@ export async function signup(_prev: SignupState, formData: FormData): Promise<Si
     if (profileError) {
       console.error('[signup] user_profiles insert 실패:', profileError);
     }
+
+    // 동의 감사 로그 — 분쟁 대응용 (IP/UA 기록)
+    const h = await headers();
+    const ip = h.get('x-forwarded-for')?.split(',')[0]?.trim() ?? null;
+    const ua = h.get('user-agent') ?? null;
+
+    type ConsentRow = {
+      user_id: string;
+      consent_type: string;
+      action: 'agree' | 'withdraw';
+      version: string | null;
+      ip_address: string | null;
+      user_agent: string | null;
+    };
+    const consentLogs: ConsentRow[] = [
+      { user_id: data.user.id, consent_type: 'terms',           action: 'agree', version: TERMS_VERSION,   ip_address: ip, user_agent: ua },
+      { user_id: data.user.id, consent_type: 'privacy',         action: 'agree', version: PRIVACY_VERSION, ip_address: ip, user_agent: ua },
+      { user_id: data.user.id, consent_type: 'age14',           action: 'agree', version: null,            ip_address: ip, user_agent: ua },
+    ];
+    if (agreeMarketing) {
+      consentLogs.push({ user_id: data.user.id, consent_type: 'marketing', action: 'agree', version: null, ip_address: ip, user_agent: ua });
+    }
+    if (agreeNightMarketing) {
+      consentLogs.push({ user_id: data.user.id, consent_type: 'night_marketing', action: 'agree', version: null, ip_address: ip, user_agent: ua });
+    }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (admin.from('consent_logs') as any).insert(consentLogs);
   }
 
   revalidatePath('/', 'layout');

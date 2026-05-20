@@ -1,0 +1,1101 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>발주Up — 공고 뜨고 전화하면 이미 늦습니다</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --navy:#040D1A;--navy2:#071428;--navy3:#0A1F3D;--navy4:#0D2B52;
+  --panel:#0B1929;--panel2:#0E2240;
+  --blue:#1D6FE8;--blue2:#2580FF;--blue-lt:#1A4A8A;
+  --cyan:#00C2FF;--cyan2:#00A8D8;
+  --green:#00D68F;--green2:#00B876;
+  --orange:#FF8C00;--orange2:#E07000;
+  --red:#FF3B3B;--red2:#CC2222;
+  --text:#E8F0FE;--text2:#8DA8C8;--text3:#4A6A90;
+  --border:#1A3A5C;--border2:#0E2A48;
+  --gold:#FFB800;
+}
+html{scroll-behavior:smooth;font-size:16px}
+body{font-family:'Noto Sans KR',sans-serif;color:var(--text);background:var(--navy);
+  line-height:1.6;overflow-x:hidden}
+
+/* ── 키프레임 ── */
+@keyframes fadeUp{from{opacity:0;transform:translateY(28px)}to{opacity:1;transform:none}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+@keyframes ripple{0%{transform:scale(.5);opacity:.8}100%{transform:scale(2.5);opacity:0}}
+@keyframes scan{0%{transform:translateY(-100%)}100%{transform:translateY(100vh)}}
+@keyframes ticker{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+@keyframes rotate{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+@keyframes glow{0%,100%{box-shadow:0 0 6px rgba(0,194,255,.3)}50%{box-shadow:0 0 18px rgba(0,194,255,.7)}}
+@keyframes barIn{from{width:0}to{width:var(--w)}}
+@keyframes pinBounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+@keyframes numUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+@keyframes blinkBorder{0%,100%{border-color:var(--border)}50%{border-color:var(--cyan)}}
+@keyframes shimmer{0%{background-position:-400px 0}100%{background-position:400px 0}}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+@keyframes pingRed{0%{transform:scale(1);opacity:1}100%{transform:scale(2.2);opacity:0}}
+
+/* ── 스크롤 트리거 ── */
+.rv{opacity:0;transform:translateY(22px);transition:opacity .55s ease,transform .55s ease}
+.rv.on{opacity:1;transform:none}
+.rv-l{opacity:0;transform:translateX(-18px);transition:opacity .55s ease,transform .55s ease}
+.rv-l.on{opacity:1;transform:none}
+.rv-r{opacity:0;transform:translateX(18px);transition:opacity .55s ease,transform .55s ease}
+.rv-r.on{opacity:1;transform:none}
+.d1{transition-delay:.1s}.d2{transition-delay:.2s}.d3{transition-delay:.3s}
+.d4{transition-delay:.4s}.d5{transition-delay:.5s}
+
+/* ── 공통 ── */
+.w{max-width:1080px;margin:0 auto;padding:0 20px}
+section{padding:80px 20px}
+.tag{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--cyan);border:1px solid var(--cyan2);
+  border-radius:3px;padding:3px 9px;margin-bottom:14px;background:rgba(0,194,255,.06)}
+.h2{font-size:clamp(26px,4vw,40px);font-weight:700;letter-spacing:-.02em;
+  line-height:1.2;margin-bottom:12px;color:#fff}
+.sub{font-size:15px;color:var(--text2);line-height:1.7;max-width:520px}
+.mono{font-variant-numeric:tabular-nums}
+
+/* ── NAV ── */
+nav{position:fixed;top:0;left:0;right:0;z-index:200;
+  background:rgba(4,13,26,.92);backdrop-filter:blur(16px);
+  border-bottom:1px solid transparent;transition:.3s}
+nav.sc{border-color:var(--border);box-shadow:0 2px 20px rgba(0,0,0,.5)}
+.nav-i{max-width:1080px;margin:0 auto;padding:0 20px;
+  height:56px;display:flex;align-items:center;justify-content:space-between}
+.logo{font-size:19px;font-weight:700;color:#fff;text-decoration:none;letter-spacing:-.02em;
+  display:flex;align-items:center;gap:7px}
+.logo-mark{width:28px;height:28px;background:var(--blue2);border-radius:6px;
+  display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff}
+.logo b{color:var(--cyan)}
+.nav-live{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text3)}
+.live-dot{width:7px;height:7px;background:var(--green);border-radius:50%;
+  animation:pulse 2s ease-in-out infinite}
+.nav-cta{background:var(--blue2);color:#fff;font-size:14px;font-weight:700;
+  padding:9px 20px;border-radius:7px;text-decoration:none;
+  transition:.2s;white-space:nowrap}
+.nav-cta:hover{background:#1a6be0;box-shadow:0 4px 16px rgba(37,128,255,.4)}
+
+/* ── HERO ── */
+#hero{min-height:100vh;display:flex;align-items:center;
+  padding:90px 20px 72px;position:relative;overflow:hidden;
+  background:radial-gradient(ellipse at 30% 50%,#0A2050 0%,var(--navy) 60%)}
+.scan-line{position:absolute;top:0;left:0;right:0;height:2px;
+  background:linear-gradient(90deg,transparent,rgba(0,194,255,.3),transparent);
+  animation:scan 6s linear infinite;pointer-events:none;z-index:0}
+.grid-bg{position:absolute;inset:0;
+  background-image:
+    linear-gradient(rgba(0,194,255,.04) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(0,194,255,.04) 1px,transparent 1px);
+  background-size:48px 48px;z-index:0}
+.hero-w{max-width:1080px;margin:0 auto;position:relative;z-index:1;
+  display:grid;grid-template-columns:1fr 480px;gap:48px;align-items:center}
+.hero-badge{display:inline-flex;align-items:center;gap:7px;
+  background:rgba(255,59,59,.12);border:1px solid rgba(255,59,59,.3);
+  color:#FF7070;font-size:12px;font-weight:700;letter-spacing:.04em;
+  padding:6px 14px;border-radius:4px;margin-bottom:22px;
+  animation:fadeIn .6s ease both}
+.badge-ping{position:relative;width:8px;height:8px}
+.badge-ping::before,.badge-ping::after{content:'';position:absolute;inset:0;
+  border-radius:50%;background:var(--red)}
+.badge-ping::after{animation:pingRed 1.4s ease-in-out infinite}
+.hero-h1{font-size:clamp(32px,5vw,58px);font-weight:700;color:#fff;
+  line-height:1.15;letter-spacing:-.03em;margin-bottom:20px;
+  animation:fadeUp .65s ease .15s both}
+.hero-h1 em{font-style:normal;color:var(--cyan);display:block}
+.hero-p{font-size:clamp(15px,1.8vw,18px);color:var(--text2);
+  line-height:1.7;margin-bottom:32px;
+  animation:fadeUp .65s ease .28s both}
+.hero-p strong{color:#fff;font-weight:700}
+.hero-btns{display:flex;flex-wrap:wrap;gap:12px;animation:fadeUp .65s ease .4s both}
+.btn-main{display:inline-flex;align-items:center;gap:9px;
+  background:var(--blue2);color:#fff;font-size:17px;font-weight:700;
+  padding:15px 30px;border-radius:8px;text-decoration:none;
+  position:relative;overflow:hidden;transition:.2s;
+  box-shadow:0 0 0 0 rgba(37,128,255,.4);
+  animation:glow 3s ease-in-out 1.5s infinite}
+.btn-main:hover{background:#1a6be0;transform:translateY(-2px);
+  box-shadow:0 8px 28px rgba(37,128,255,.5)}
+.btn-sub{display:inline-flex;align-items:center;
+  background:transparent;color:var(--text2);font-size:15px;
+  padding:15px 22px;border-radius:8px;text-decoration:none;
+  border:1px solid var(--border);transition:.2s}
+.btn-sub:hover{border-color:var(--cyan2);color:var(--cyan)}
+.hero-note{margin-top:16px;font-size:12px;color:var(--text3);
+  animation:fadeIn .7s ease .8s both}
+
+/* 히어로 대시보드 패널 */
+.hero-panel{animation:fadeUp .8s ease .3s both,float 5s ease-in-out 1.3s infinite}
+.panel{background:var(--panel);border:1px solid var(--border);border-radius:14px;
+  overflow:hidden}
+.panel-header{background:var(--panel2);border-bottom:1px solid var(--border);
+  padding:12px 18px;display:flex;align-items:center;justify-content:space-between}
+.panel-title{font-size:12px;font-weight:700;color:var(--text2);letter-spacing:.06em;text-transform:uppercase}
+.panel-live{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--green)}
+.panel-live-d{width:6px;height:6px;background:var(--green);border-radius:50%;animation:pulse 1.8s ease-in-out infinite}
+.panel-body{padding:16px}
+.panel-stat-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px}
+.pstat{background:rgba(255,255,255,.03);border:1px solid var(--border2);
+  border-radius:8px;padding:12px;text-align:center}
+.pstat-n{font-size:22px;font-weight:700;display:block;line-height:1;margin-bottom:4px}
+.pstat-n.c-red{color:var(--red)}.pstat-n.c-orange{color:var(--orange)}.pstat-n.c-green{color:var(--green)}
+.pstat-l{font-size:10px;color:var(--text3)}
+.plist-item{display:grid;grid-template-columns:1fr auto;align-items:center;
+  gap:10px;padding:10px 12px;border-radius:8px;margin-bottom:7px;
+  border:1px solid var(--border2);background:rgba(255,255,255,.02);
+  transition:background .2s,border-color .2s}
+.plist-item:hover{background:rgba(0,194,255,.05);border-color:rgba(0,194,255,.2)}
+.pl-name{font-size:13px;font-weight:700;color:#fff;margin-bottom:3px}
+.pl-meta{font-size:11px;color:var(--text3)}
+.pl-right{text-align:right}
+.pl-pct{font-size:20px;font-weight:700}
+.pl-pct.hi{color:var(--red)}.pl-pct.md{color:var(--orange)}.pl-pct.lo{color:var(--green)}
+.pl-time{font-size:10px;color:var(--text3);margin-top:2px}
+.urgency-bar{height:3px;background:rgba(255,255,255,.08);border-radius:2px;margin-top:5px;overflow:hidden}
+.urgency-fill{height:100%;border-radius:2px;transition:width 1.2s ease}
+.urgency-fill.hi{background:var(--red)}.urgency-fill.md{background:var(--orange)}.urgency-fill.lo{background:var(--green)}
+
+/* ── TICKER ── */
+.ticker-wrap{background:#020A14;border-top:1px solid var(--border);
+  border-bottom:1px solid var(--border);padding:11px 0;overflow:hidden}
+.ticker-track{display:flex;width:max-content;animation:ticker 28s linear infinite}
+.t-item{white-space:nowrap;padding:0 40px;font-size:12px;color:var(--text3);font-weight:500}
+.t-item strong{color:var(--text2)}
+.t-sep{color:var(--border);font-size:16px}
+
+/* ── 관제 현황판 ── */
+#dashboard{background:var(--navy2);border-top:1px solid var(--border);
+  border-bottom:1px solid var(--border);padding:56px 20px}
+.db-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));
+  gap:14px;margin-top:40px}
+.db-card{background:var(--panel);border:1px solid var(--border);border-radius:12px;
+  padding:24px 20px;position:relative;overflow:hidden;
+  transition:border-color .3s,transform .3s}
+.db-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px}
+.db-card.red::before{background:var(--red)}
+.db-card.orange::before{background:var(--orange)}
+.db-card.green::before{background:var(--green)}
+.db-card.cyan::before{background:var(--cyan)}
+.db-card:hover{border-color:var(--border);transform:translateY(-3px)}
+.db-card.red:hover{border-color:rgba(255,59,59,.4)}
+.db-card.orange:hover{border-color:rgba(255,140,0,.4)}
+.db-card.green:hover{border-color:rgba(0,214,143,.4)}
+.db-card.cyan:hover{border-color:rgba(0,194,255,.4)}
+.db-n{font-size:clamp(38px,5vw,52px);font-weight:700;display:block;
+  line-height:1;letter-spacing:-.04em;margin-bottom:8px}
+.db-card.red .db-n{color:var(--red)}
+.db-card.orange .db-n{color:var(--orange)}
+.db-card.green .db-n{color:var(--green)}
+.db-card.cyan .db-n{color:var(--cyan)}
+.db-l{font-size:14px;color:var(--text2);margin-bottom:4px;font-weight:500}
+.db-s{font-size:12px;color:var(--text3)}
+
+/* ── 단지 리스트 UI ── */
+#list-ui{background:var(--navy)}
+.ui-shell{background:var(--panel);border:1px solid var(--border);border-radius:16px;
+  overflow:hidden;margin-top:44px}
+.ui-topbar{background:#060F1C;border-bottom:1px solid var(--border);
+  padding:14px 20px;display:flex;align-items:center;gap:16px}
+.ui-search{flex:1;display:flex;align-items:center;gap:10px;
+  background:rgba(255,255,255,.04);border:1px solid var(--border);
+  border-radius:7px;padding:9px 14px;transition:.2s;cursor:text}
+.ui-search:focus-within{border-color:var(--cyan2);box-shadow:0 0 0 2px rgba(0,194,255,.1)}
+.ui-search-icon{width:15px;height:15px;flex-shrink:0}
+.ui-search-icon svg{width:15px;height:15px;stroke:var(--text3);fill:none;stroke-width:2}
+.ui-search input{background:none;border:none;outline:none;font-size:14px;
+  color:var(--text);font-family:inherit;width:100%;caret-color:var(--cyan)}
+.ui-search input::placeholder{color:var(--text3)}
+.ui-filter{display:flex;gap:7px}
+.filter-btn{font-size:12px;font-weight:700;padding:7px 13px;border-radius:6px;
+  border:1px solid var(--border);background:transparent;color:var(--text3);
+  cursor:pointer;transition:.2s;white-space:nowrap}
+.filter-btn.active{background:var(--blue-lt);border-color:var(--blue2);color:var(--cyan)}
+.filter-btn:hover{border-color:var(--cyan2);color:var(--cyan)}
+.ui-body{padding:16px}
+.ui-list-header{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;
+  gap:10px;padding:7px 12px;font-size:11px;font-weight:700;
+  color:var(--text3);letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px}
+.ui-row{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;
+  gap:10px;padding:12px;border-radius:9px;margin-bottom:6px;
+  border:1px solid var(--border2);background:rgba(255,255,255,.02);
+  transition:.2s;cursor:default;align-items:center}
+.ui-row:hover{background:rgba(0,194,255,.05);border-color:rgba(0,194,255,.18)}
+.ur-name{font-size:14px;font-weight:700;color:#fff}
+.ur-addr{font-size:11px;color:var(--text3);margin-top:2px}
+.ur-date{font-size:13px;color:var(--text2);font-weight:500}
+.ur-badge{display:inline-flex;align-items:center;gap:5px;
+  font-size:12px;font-weight:700;padding:4px 9px;border-radius:100px}
+.ur-badge.hi{background:rgba(255,59,59,.15);color:var(--red);border:1px solid rgba(255,59,59,.25)}
+.ur-badge.md{background:rgba(255,140,0,.15);color:var(--orange);border:1px solid rgba(255,140,0,.25)}
+.ur-badge.lo{background:rgba(0,214,143,.15);color:var(--green);border:1px solid rgba(0,214,143,.25)}
+.ur-pct{font-size:18px;font-weight:700}
+.ur-pct.hi{color:var(--red)}.ur-pct.md{color:var(--orange)}.ur-pct.lo{color:var(--green)}
+.ui-footer{padding:14px 16px;border-top:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
+  font-size:12px;color:var(--text3)}
+.ui-more{color:var(--cyan);font-weight:700;cursor:pointer;font-size:13px;
+  background:none;border:none;transition:.2s}
+.ui-more:hover{color:#fff}
+
+/* ── MAP ── */
+#map-section{background:var(--navy2)}
+.map-wrap{display:grid;grid-template-columns:1fr 320px;gap:28px;
+  margin-top:44px;align-items:start}
+.map-box{background:var(--panel);border:1px solid var(--border);border-radius:14px;
+  overflow:hidden;position:relative}
+.map-header{background:#060F1C;border-bottom:1px solid var(--border);
+  padding:12px 18px;display:flex;align-items:center;justify-content:space-between}
+.map-title{font-size:12px;font-weight:700;color:var(--text2);letter-spacing:.06em;text-transform:uppercase}
+.map-live{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--green)}
+.map-live-d{width:6px;height:6px;background:var(--green);border-radius:50%;animation:pulse 2s ease-in-out infinite}
+.map-svg-wrap{padding:16px;position:relative}
+/* SVG 지도 */
+.map-svg{width:100%;height:auto}
+.map-region{fill:rgba(29,111,232,.06);stroke:var(--border);stroke-width:1}
+.map-region:hover{fill:rgba(29,111,232,.14)}
+/* 핀 */
+.map-pin{cursor:default;transition:.2s}
+.map-pin circle.ring{opacity:0}
+.map-pin:hover circle.ring{opacity:1}
+.pin-label{font-size:9px;fill:var(--text2);font-family:'Noto Sans KR',sans-serif}
+/* 범례 */
+.map-legend{position:absolute;bottom:24px;left:24px;
+  background:rgba(4,13,26,.85);border:1px solid var(--border);border-radius:8px;
+  padding:10px 14px}
+.legend-item{display:flex;align-items:center;gap:7px;font-size:11px;color:var(--text2);margin-bottom:5px}
+.legend-item:last-child{margin-bottom:0}
+.legend-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+/* 사이드 리스트 */
+.map-side{background:var(--panel);border:1px solid var(--border);border-radius:14px;overflow:hidden}
+.ms-header{background:#060F1C;border-bottom:1px solid var(--border);
+  padding:12px 18px;font-size:12px;font-weight:700;
+  color:var(--text2);letter-spacing:.06em;text-transform:uppercase}
+.ms-body{padding:12px}
+.ms-row{padding:11px 12px;border-radius:8px;margin-bottom:7px;
+  border:1px solid var(--border2);background:rgba(255,255,255,.02);
+  display:flex;align-items:center;justify-content:space-between;
+  transition:.2s;cursor:default}
+.ms-row:hover{background:rgba(0,194,255,.05);border-color:rgba(0,194,255,.18)}
+.ms-name{font-size:13px;font-weight:700;color:#fff;margin-bottom:2px}
+.ms-dist{font-size:11px;color:var(--text3)}
+.ms-pct{font-size:16px;font-weight:700}
+.ms-pct.hi{color:var(--red)}.ms-pct.md{color:var(--orange)}.ms-pct.lo{color:var(--green)}
+
+/* ── 영업 타임라인 ── */
+#timeline{background:var(--navy)}
+.tl-wrap{position:relative;margin-top:50px;overflow-x:auto;padding-bottom:10px}
+.tl-track{display:flex;align-items:flex-start;gap:0;min-width:700px;position:relative}
+.tl-track::before{content:'';position:absolute;top:30px;left:0;right:0;
+  height:2px;background:var(--border)}
+.tl-step{flex:1;text-align:center;position:relative;padding-top:62px}
+.tl-node{width:20px;height:20px;border-radius:50%;
+  position:absolute;top:20px;left:50%;transform:translateX(-50%);
+  border:2px solid var(--border);background:var(--panel);
+  transition:.3s;z-index:1}
+.tl-step.active .tl-node{background:var(--blue2);border-color:var(--blue2);
+  box-shadow:0 0 0 6px rgba(37,128,255,.2)}
+.tl-step.warn .tl-node{background:var(--orange);border-color:var(--orange);
+  box-shadow:0 0 0 6px rgba(255,140,0,.2)}
+.tl-step.early .tl-node{background:var(--green);border-color:var(--green);
+  box-shadow:0 0 0 6px rgba(0,214,143,.2)}
+.tl-label{font-size:12px;color:var(--text3);font-weight:500}
+.tl-step.active .tl-label{color:var(--text2)}
+.tl-step.warn .tl-label{color:var(--orange)}
+.tl-step.early .tl-label{color:var(--green);font-weight:700}
+.tl-arrow-label{position:absolute;top:-32px;left:50%;transform:translateX(-50%);
+  background:var(--green);color:#fff;font-size:10px;font-weight:700;
+  padding:4px 9px;border-radius:100px;white-space:nowrap}
+.tl-vs{margin-top:40px;display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.tl-vs-box{border-radius:10px;padding:20px 24px;text-align:center}
+.tl-vs-kapt{background:rgba(255,255,255,.04);border:1px solid var(--border)}
+.tl-vs-baljuup{background:rgba(0,214,143,.08);border:1px solid rgba(0,214,143,.3)}
+.tl-vs-label{font-size:12px;font-weight:700;letter-spacing:.06em;margin-bottom:8px}
+.tl-vs-kapt .tl-vs-label{color:var(--text3)}
+.tl-vs-baljuup .tl-vs-label{color:var(--green)}
+.tl-vs-text{font-size:18px;font-weight:700;color:#fff}
+
+/* ── 카카오톡 시나리오 ── */
+#kakao{background:var(--navy2)}
+.kakao-wrap{display:grid;grid-template-columns:1fr 1fr;gap:32px;
+  margin-top:44px;align-items:center}
+.kakao-phone{background:var(--panel);border:1px solid var(--border);
+  border-radius:20px;overflow:hidden;max-width:320px;margin:0 auto}
+.kp-header{background:#0E2240;padding:14px 18px;
+  display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border)}
+.kp-avatar{width:36px;height:36px;background:var(--blue-lt);border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:13px;font-weight:700;color:var(--cyan);flex-shrink:0}
+.kp-name{font-size:14px;font-weight:700;color:#fff}
+.kp-status{font-size:11px;color:var(--text3)}
+.kp-body{padding:18px;min-height:300px;background:rgba(0,0,0,.2)}
+.bubble{max-width:78%;margin-bottom:12px;clear:both}
+.bubble.recv{float:left}
+.bubble.sent{float:right}
+.bubble-text{font-size:13px;line-height:1.55;padding:10px 13px;border-radius:12px}
+.bubble.recv .bubble-text{background:#1A3A5C;color:var(--text);border-radius:4px 12px 12px 12px}
+.bubble.sent .bubble-text{background:var(--blue2);color:#fff;border-radius:12px 4px 12px 12px}
+.bubble-time{font-size:10px;color:var(--text3);margin-top:4px;padding:0 2px}
+.bubble.sent .bubble-time{text-align:right}
+.kp-foot{background:#0E2240;border-top:1px solid var(--border);
+  padding:12px 16px;font-size:11px;color:var(--text3);text-align:center}
+.kp-foot span{color:var(--cyan);font-weight:700}
+.kakao-text{padding-left:12px}
+.kt-title{font-size:clamp(22px,3vw,30px);font-weight:700;color:#fff;
+  line-height:1.3;margin-bottom:16px}
+.kt-desc{font-size:15px;color:var(--text2);line-height:1.7;margin-bottom:24px}
+.kt-points{list-style:none}
+.kt-points li{font-size:14px;color:var(--text2);padding:7px 0;
+  display:flex;align-items:flex-start;gap:9px;border-bottom:1px solid var(--border2)}
+.kt-points li:last-child{border-bottom:none}
+.kt-points li::before{content:'';width:16px;height:16px;border-radius:3px;
+  background:var(--blue-lt);flex-shrink:0;margin-top:1px;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath stroke='%2300C2FF' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round' d='M3 8l3.5 3.5L13 4' fill='none'/%3E%3C/svg%3E");
+  background-size:contain;background-repeat:no-repeat}
+
+/* ── 검색 유도 ── */
+#search-cta{background:var(--navy3);border-top:1px solid var(--border);
+  border-bottom:1px solid var(--border);padding:72px 20px;text-align:center}
+.sc-h{font-size:clamp(28px,4vw,44px);font-weight:700;color:#fff;
+  line-height:1.2;margin-bottom:14px}
+.sc-sub{font-size:16px;color:var(--text2);margin-bottom:36px}
+.sc-box{max-width:560px;margin:0 auto}
+.sc-input-wrap{display:flex;background:var(--panel);border:1.5px solid var(--border);
+  border-radius:10px;overflow:hidden;transition:.2s;margin-bottom:16px}
+.sc-input-wrap:focus-within{border-color:var(--cyan2);box-shadow:0 0 0 3px rgba(0,194,255,.1)}
+.sc-input{flex:1;background:none;border:none;outline:none;
+  font-size:16px;color:var(--text);font-family:inherit;padding:15px 18px;
+  caret-color:var(--cyan)}
+.sc-input::placeholder{color:var(--text3)}
+.sc-input-btn{background:var(--blue2);color:#fff;border:none;cursor:pointer;
+  font-size:15px;font-weight:700;padding:0 24px;font-family:inherit;transition:.2s}
+.sc-input-btn:hover{background:#1a6be0}
+.sc-chips{display:flex;flex-wrap:wrap;justify-content:center;gap:9px}
+.sc-chip{background:rgba(255,255,255,.04);border:1px solid var(--border);
+  color:var(--text2);font-size:13px;padding:8px 16px;border-radius:100px;
+  cursor:pointer;transition:.2s}
+.sc-chip:hover{border-color:var(--cyan2);color:var(--cyan);background:rgba(0,194,255,.06)}
+
+/* ── VS 비교 ── */
+#vs{background:var(--navy)}
+.vs-simple{display:grid;grid-template-columns:1fr auto 1fr;
+  gap:20px;align-items:center;margin-top:44px}
+.vs-box{border-radius:14px;padding:28px}
+.vs-kapt{background:rgba(255,255,255,.03);border:1px solid var(--border)}
+.vs-baljuup{background:rgba(0,214,143,.07);border:1px solid rgba(0,214,143,.3)}
+.vs-lbl{font-size:12px;font-weight:700;letter-spacing:.07em;margin-bottom:16px;text-transform:uppercase}
+.vs-kapt .vs-lbl{color:var(--text3)}
+.vs-baljuup .vs-lbl{color:var(--green)}
+.vs-row{display:flex;align-items:flex-start;gap:10px;margin-bottom:11px;font-size:14px}
+.vs-kapt .vs-row{color:var(--text3)}
+.vs-baljuup .vs-row{color:var(--text)}
+.vs-icon{width:20px;height:20px;border-radius:50%;flex-shrink:0;margin-top:1px;
+  display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700}
+.vs-kapt .vs-icon{background:rgba(255,59,59,.12);color:var(--red)}
+.vs-baljuup .vs-icon{background:rgba(0,214,143,.15);color:var(--green)}
+.vs-mid{text-align:center;font-size:13px;color:var(--text3)}
+.vs-vs{font-size:28px;font-weight:700;color:var(--text3);display:block;margin-bottom:6px}
+
+/* ── PRICING ── */
+#pricing{background:var(--navy2)}
+.pr-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));
+  gap:16px;margin-top:44px;align-items:start}
+.pr-plan{background:var(--panel);border:1px solid var(--border);
+  border-radius:14px;padding:28px;transition:.3s;position:relative}
+.pr-plan:hover{transform:translateY(-4px)}
+.pr-plan.hot{border:1.5px solid var(--blue2);transform:translateY(-4px)}
+.pr-plan.hot:hover{transform:translateY(-8px)}
+.pr-hot-badge{position:absolute;top:-12px;left:50%;transform:translateX(-50%);
+  background:var(--blue2);color:#fff;font-size:11px;font-weight:700;
+  padding:4px 14px;border-radius:100px;letter-spacing:.04em;white-space:nowrap}
+.pr-name{font-size:13px;font-weight:700;color:var(--text3);
+  letter-spacing:.06em;text-transform:uppercase;margin-bottom:8px}
+.pr-price{font-size:34px;font-weight:700;color:#fff;
+  letter-spacing:-.04em;margin-bottom:4px}
+.pr-price span{font-size:14px;font-weight:400;color:var(--text3)}
+.pr-desc{font-size:12px;color:var(--text3);margin-bottom:22px}
+.pr-hr{height:1px;background:var(--border);margin-bottom:22px}
+.pr-ul{list-style:none;margin-bottom:26px}
+.pr-ul li{font-size:13px;color:var(--text2);padding:5px 0;
+  display:flex;align-items:flex-start;gap:7px}
+.pr-ul li::before{content:'';width:15px;height:15px;border-radius:3px;flex-shrink:0;
+  margin-top:1px;
+  background:var(--blue-lt) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 15 15'%3E%3Cpath stroke='%2300C2FF' stroke-width:'2.2' stroke-linecap='round' stroke-linejoin='round' d='M3 7.5l3 3 6-6' fill='none'/%3E%3C/svg%3E") center/contain no-repeat}
+.pr-btn{display:block;text-align:center;padding:12px;border-radius:8px;
+  font-size:14px;font-weight:700;text-decoration:none;transition:.2s}
+.pr-btn-out{border:1px solid var(--border);color:var(--text2)}
+.pr-btn-out:hover{border-color:var(--cyan2);color:var(--cyan)}
+.pr-btn-fill{background:var(--blue2);color:#fff;box-shadow:0 4px 14px rgba(37,128,255,.3)}
+.pr-btn-fill:hover{background:#1a6be0;box-shadow:0 6px 20px rgba(37,128,255,.45)}
+
+/* ── FINAL CTA ── */
+#final-cta{background:var(--navy3);
+  background-image:radial-gradient(ellipse at center,rgba(29,111,232,.15) 0%,transparent 70%);
+  padding:96px 20px;text-align:center;
+  border-top:1px solid var(--border)}
+.fc-inner{max-width:560px;margin:0 auto}
+.fc-h{font-size:clamp(28px,4.5vw,46px);font-weight:700;color:#fff;
+  line-height:1.18;margin-bottom:14px}
+.fc-sub{font-size:16px;color:var(--text2);margin-bottom:34px}
+.fc-btns{display:flex;justify-content:center;flex-wrap:wrap;gap:12px}
+.fc-note{margin-top:18px;font-size:12px;color:var(--text3)}
+
+/* ── FOOTER ── */
+footer{background:#020A14;border-top:1px solid var(--border);
+  padding:48px 20px 28px}
+.foot-i{max-width:1080px;margin:0 auto;
+  display:grid;grid-template-columns:1fr auto;gap:28px;
+  padding-bottom:28px;border-bottom:1px solid var(--border);margin-bottom:22px}
+.foot-logo{color:#fff;font-size:17px;font-weight:700;margin-bottom:8px}
+.foot-logo b{color:var(--cyan)}
+.foot-desc{font-size:12px;color:var(--text3);line-height:1.6;max-width:280px}
+.foot-links{display:flex;flex-direction:column;gap:8px;align-items:flex-end}
+.foot-links a{color:var(--text3);font-size:12px;text-decoration:none;transition:.2s}
+.foot-links a:hover{color:var(--text2)}
+.foot-legal{font-size:11px;color:var(--text3);max-width:1080px;margin:0 auto}
+
+/* ── 반응형 ── */
+@media(max-width:900px){
+  .hero-w,.kakao-wrap,.map-wrap{grid-template-columns:1fr}
+  .hero-panel{order:-1}
+  .vs-simple{grid-template-columns:1fr;grid-template-rows:auto}
+  .vs-mid{display:none}
+  .map-side{display:none}
+}
+@media(max-width:600px){
+  section{padding:60px 16px}
+  .ui-list-header,.ui-row{grid-template-columns:1.5fr 1fr 1fr}
+  .ui-list-header span:last-child,.ui-row .ur-date{display:none}
+  .tl-vs{grid-template-columns:1fr}
+  .pr-plan.hot{transform:none}.pr-plan.hot:hover{transform:translateY(-4px)}
+  .foot-i{grid-template-columns:1fr}
+  .foot-links{align-items:flex-start}
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav id="mn">
+  <div class="nav-i">
+    <a class="logo" href="#hero">
+      <div class="logo-mark">발</div>
+      발주<b>Up</b>
+    </a>
+    <div class="nav-live">
+      <span class="live-dot"></span>
+      실시간 분석 중
+    </div>
+    <a class="nav-cta" href="#pricing">무료 체험</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section id="hero">
+  <div class="scan-line"></div>
+  <div class="grid-bg"></div>
+  <div class="hero-w">
+    <div>
+      <div class="hero-badge">
+        <span class="badge-ping"></span>
+        공고 뜨고 전화하면 이미 늦습니다
+      </div>
+      <h1 class="hero-h1">
+        경쟁사보다<br>
+        <em>3~6개월 먼저</em><br>
+        단지에 연락하세요
+      </h1>
+      <p class="hero-p">
+        공고 전에 전화해야 수주가 됩니다.<br>
+        <strong>발주Up은 공고가 나오기 전,<br>지금 연락해야 할 단지를 알려줍니다.</strong>
+      </p>
+      <div class="hero-btns">
+        <a class="btn-main" href="#pricing">우리 지역 단지 확인하기</a>
+        <a class="btn-sub" href="#list-ui">실제 화면 보기</a>
+      </div>
+      <p class="hero-note">14일 무료 체험 · 신용카드 불필요</p>
+    </div>
+    <div class="hero-panel">
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-title">이번 달 발주 현황</span>
+          <span class="panel-live"><span class="panel-live-d"></span>실시간</span>
+        </div>
+        <div class="panel-body">
+          <div class="panel-stat-row">
+            <div class="pstat">
+              <span class="pstat-n c-red mono" id="h-cnt1">0</span>
+              <div class="pstat-l">긴급 발주</div>
+            </div>
+            <div class="pstat">
+              <span class="pstat-n c-orange mono" id="h-cnt2">0</span>
+              <div class="pstat-l">신규 감지</div>
+            </div>
+            <div class="pstat">
+              <span class="pstat-n c-green mono" id="h-cnt3">0</span>
+              <div class="pstat-l">예상 발주</div>
+            </div>
+          </div>
+          <div class="plist-item">
+            <div><div class="pl-name">서초구 방배동 A단지</div><div class="pl-meta">준공 1999 · 1,240세대</div></div>
+            <div class="pl-right"><div class="pl-pct hi mono">92%</div><div class="pl-time">2개월 내 예상</div></div>
+          </div>
+          <div class="urgency-bar"><div class="urgency-fill hi" style="--w:92%"></div></div>
+          <div class="plist-item" style="margin-top:8px">
+            <div><div class="pl-name">강남구 대치동 B단지</div><div class="pl-meta">준공 2001 · 890세대</div></div>
+            <div class="pl-right"><div class="pl-pct md mono">76%</div><div class="pl-time">3개월 내 예상</div></div>
+          </div>
+          <div class="urgency-bar"><div class="urgency-fill md" style="--w:76%"></div></div>
+          <div class="plist-item" style="margin-top:8px">
+            <div><div class="pl-name">수원 영통구 C단지</div><div class="pl-meta">준공 2003 · 1,650세대</div></div>
+            <div class="pl-right"><div class="pl-pct lo mono">58%</div><div class="pl-time">5개월 내 예상</div></div>
+          </div>
+          <div class="urgency-bar"><div class="urgency-fill lo" style="--w:58%"></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TICKER -->
+<div class="ticker-wrap">
+  <div class="ticker-track">
+    <span class="t-item">이번달 예상 발주 <strong>127건</strong></span><span class="t-sep"> · </span>
+    <span class="t-item">신규 감지 <strong>18건</strong></span><span class="t-sep"> · </span>
+    <span class="t-item">긴급 관리 예상 <strong>9건</strong></span><span class="t-sep"> · </span>
+    <span class="t-item">서울 <strong>43건</strong> · 경기 <strong>84건</strong></span><span class="t-sep"> · </span>
+    <span class="t-item">평균 선행 기간 <strong>4.3개월</strong></span><span class="t-sep"> · </span>
+    <span class="t-item">오늘 수집 완료 <strong>08:12</strong></span><span class="t-sep"> · </span>
+    <span class="t-item">이번달 예상 발주 <strong>127건</strong></span><span class="t-sep"> · </span>
+    <span class="t-item">신규 감지 <strong>18건</strong></span><span class="t-sep"> · </span>
+    <span class="t-item">긴급 관리 예상 <strong>9건</strong></span><span class="t-sep"> · </span>
+    <span class="t-item">서울 <strong>43건</strong> · 경기 <strong>84건</strong></span><span class="t-sep"> · </span>
+    <span class="t-item">평균 선행 기간 <strong>4.3개월</strong></span><span class="t-sep"> · </span>
+    <span class="t-item">오늘 수집 완료 <strong>08:12</strong></span><span class="t-sep"> · </span>
+  </div>
+</div>
+
+<!-- 관제 현황판 -->
+<section id="dashboard">
+  <div class="w">
+    <div class="rv" style="text-align:center;max-width:480px;margin:0 auto 0">
+      <div class="tag">실시간 현황</div>
+      <h2 class="h2">지금 이 순간<br>수도권 현황입니다</h2>
+    </div>
+    <div class="db-grid">
+      <div class="db-card red rv d1">
+        <span class="db-n mono" data-target="9" data-suffix="">0</span>
+        <div class="db-l">긴급 — 이번달 발주 임박</div>
+        <div class="db-s">30일 이내 입찰 예상 단지</div>
+      </div>
+      <div class="db-card orange rv d2">
+        <span class="db-n mono" data-target="18" data-suffix="">0</span>
+        <div class="db-l">신규 감지</div>
+        <div class="db-s">이번 주 새로 탐지된 단지</div>
+      </div>
+      <div class="db-card cyan rv d3">
+        <span class="db-n mono" data-target="127" data-suffix="">0</span>
+        <div class="db-l">이번달 예상 발주</div>
+        <div class="db-s">서울·경기 전체 합산</div>
+      </div>
+      <div class="db-card green rv d4">
+        <span class="db-n mono" data-target="17" data-suffix="천+">0</span>
+        <div class="db-l">분석 단지 총수</div>
+        <div class="db-s">수도권 공동주택 전체</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 단지 리스트 UI -->
+<section id="list-ui">
+  <div class="w">
+    <div class="rv">
+      <div class="tag">실제 화면</div>
+      <h2 class="h2">이런 화면으로<br>매일 아침 확인합니다</h2>
+      <p class="sub">K-apt 켤 필요 없습니다. 발주Up에서 지역, 긴급도, 단지를 한 번에 확인합니다.</p>
+    </div>
+    <div class="ui-shell rv">
+      <div class="ui-topbar">
+        <div class="ui-search">
+          <div class="ui-search-icon">
+            <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><line x1="16.5" y1="16.5" x2="22" y2="22"/></svg>
+          </div>
+          <input type="text" placeholder="단지명 또는 지역 검색..." readonly>
+        </div>
+        <div class="ui-filter">
+          <button class="filter-btn active">전체</button>
+          <button class="filter-btn">서울</button>
+          <button class="filter-btn">경기</button>
+          <button class="filter-btn">긴급</button>
+        </div>
+      </div>
+      <div class="ui-body">
+        <div class="ui-list-header">
+          <span>단지명</span><span>발주 가능성</span><span>예상 시기</span><span>상태</span>
+        </div>
+        <div class="ui-row rv d1">
+          <div><div class="ur-name">방배 래미안 2차</div><div class="ur-addr">서울 서초구 방배동</div></div>
+          <div class="ur-pct hi mono">94%</div>
+          <div class="ur-date mono">2025.08 예상</div>
+          <div><span class="ur-badge hi">긴급</span></div>
+        </div>
+        <div class="ui-row rv d2">
+          <div><div class="ur-name">대치 은마 아파트</div><div class="ur-addr">서울 강남구 대치동</div></div>
+          <div class="ur-pct hi mono">88%</div>
+          <div class="ur-date mono">2025.09 예상</div>
+          <div><span class="ur-badge hi">긴급</span></div>
+        </div>
+        <div class="ui-row rv d3">
+          <div><div class="ur-name">영통 벽산 블루밍</div><div class="ur-addr">경기 수원시 영통구</div></div>
+          <div class="ur-pct md mono">73%</div>
+          <div class="ur-date mono">2025.10 예상</div>
+          <div><span class="ur-badge md">관심</span></div>
+        </div>
+        <div class="ui-row rv d4">
+          <div><div class="ur-name">분당 파크뷰 5단지</div><div class="ur-addr">경기 성남시 분당구</div></div>
+          <div class="ur-pct md mono">67%</div>
+          <div class="ur-date mono">2025.11 예상</div>
+          <div><span class="ur-badge md">관심</span></div>
+        </div>
+        <div class="ui-row rv d5">
+          <div><div class="ur-name">일산 후곡 마을 8단지</div><div class="ur-addr">경기 고양시 일산동구</div></div>
+          <div class="ur-pct lo mono">51%</div>
+          <div class="ur-date mono">2025.12 예상</div>
+          <div><span class="ur-badge lo">예비</span></div>
+        </div>
+      </div>
+      <div class="ui-footer">
+        <span>전체 1,247개 단지 중 127개 표시</span>
+        <button class="ui-more">더 보기 (1,120건)</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 지도 섹션 -->
+<section id="map-section">
+  <div class="w">
+    <div class="rv">
+      <div class="tag">지역 현황</div>
+      <h2 class="h2">우리 지역에<br>지금 몇 건입니까</h2>
+      <p class="sub">발주 임박 단지를 지역별로 한눈에 파악합니다.</p>
+    </div>
+    <div class="map-wrap">
+      <div class="map-box rv-l">
+        <div class="map-header">
+          <span class="map-title">수도권 발주 현황 지도</span>
+          <span class="map-live"><span class="map-live-d"></span>오늘 08:12 업데이트</span>
+        </div>
+        <div class="map-svg-wrap">
+          <!-- 수도권 간략 SVG 지도 -->
+          <svg class="map-svg" viewBox="0 0 500 460" xmlns="http://www.w3.org/2000/svg">
+            <!-- 경기도 외곽 -->
+            <polygon class="map-region" points="60,80 100,40 180,30 260,20 340,40 420,60 460,120 470,200 450,280 400,340 340,390 260,420 180,430 100,400 60,340 30,260 20,180 30,120"/>
+            <!-- 서울 -->
+            <polygon points="170,170 200,150 240,145 280,150 310,170 320,200 310,230 280,250 240,258 200,250 170,230 160,200" fill="rgba(29,111,232,.1)" stroke="rgba(29,111,232,.4)" stroke-width="1.5"/>
+            <text x="238" y="205" text-anchor="middle" font-size="11" fill="#8DA8C8" font-family="'Noto Sans KR',sans-serif">서울</text>
+
+            <!-- 발주 임박 핀 - 긴급 (빨강) -->
+            <g class="map-pin" style="animation:pinBounce 2s ease-in-out infinite">
+              <circle cx="240" cy="195" r="14" fill="rgba(255,59,59,.15)" class="ring"/>
+              <circle cx="240" cy="195" r="8" fill="var(--red)" opacity=".9"/>
+              <circle cx="240" cy="195" r="4" fill="#fff"/>
+              <text x="240" y="175" text-anchor="middle" class="pin-label">방배 94%</text>
+            </g>
+            <g class="map-pin" style="animation:pinBounce 2.4s ease-in-out .3s infinite">
+              <circle cx="282" cy="210" r="14" fill="rgba(255,59,59,.15)" class="ring"/>
+              <circle cx="282" cy="210" r="8" fill="var(--red)" opacity=".85"/>
+              <circle cx="282" cy="210" r="4" fill="#fff"/>
+              <text x="282" y="190" text-anchor="middle" class="pin-label">대치 88%</text>
+            </g>
+            <!-- 관심 (주황) -->
+            <g class="map-pin" style="animation:pinBounce 3s ease-in-out .5s infinite">
+              <circle cx="320" cy="290" r="12" fill="rgba(255,140,0,.15)" class="ring"/>
+              <circle cx="320" cy="290" r="7" fill="var(--orange)" opacity=".85"/>
+              <circle cx="320" cy="290" r="3.5" fill="#fff"/>
+              <text x="320" y="271" text-anchor="middle" class="pin-label">영통 73%</text>
+            </g>
+            <g class="map-pin" style="animation:pinBounce 2.7s ease-in-out .8s infinite">
+              <circle cx="340" cy="320" r="12" fill="rgba(255,140,0,.15)" class="ring"/>
+              <circle cx="340" cy="320" r="7" fill="var(--orange)" opacity=".8"/>
+              <circle cx="340" cy="320" r="3.5" fill="#fff"/>
+              <text x="340" y="300" text-anchor="middle" class="pin-label">분당 67%</text>
+            </g>
+            <!-- 예비 (초록) -->
+            <g class="map-pin" style="animation:pinBounce 3.5s ease-in-out .2s infinite">
+              <circle cx="130" cy="160" r="10" fill="rgba(0,214,143,.12)" class="ring"/>
+              <circle cx="130" cy="160" r="6" fill="var(--green)" opacity=".8"/>
+              <circle cx="130" cy="160" r="3" fill="#fff"/>
+              <text x="130" y="143" text-anchor="middle" class="pin-label">일산 51%</text>
+            </g>
+            <g class="map-pin" style="animation:pinBounce 4s ease-in-out .6s infinite">
+              <circle cx="390" cy="220" r="10" fill="rgba(0,214,143,.12)" class="ring"/>
+              <circle cx="390" cy="220" r="6" fill="var(--green)" opacity=".75"/>
+              <circle cx="390" cy="220" r="3" fill="#fff"/>
+              <text x="390" y="203" text-anchor="middle" class="pin-label">용인 45%</text>
+            </g>
+            <g class="map-pin">
+              <circle cx="170" cy="300" r="10" fill="rgba(0,214,143,.12)" class="ring"/>
+              <circle cx="170" cy="300" r="6" fill="var(--green)" opacity=".75"/>
+              <circle cx="170" cy="300" r="3" fill="#fff"/>
+              <text x="170" y="283" text-anchor="middle" class="pin-label">안양 48%</text>
+            </g>
+
+            <!-- 범례 구역명 -->
+            <text x="120" y="200" text-anchor="middle" font-size="9" fill="#2A4A70" font-family="sans-serif">고양</text>
+            <text x="155" y="350" text-anchor="middle" font-size="9" fill="#2A4A70" font-family="sans-serif">안양·과천</text>
+            <text x="360" y="260" text-anchor="middle" font-size="9" fill="#2A4A70" font-family="sans-serif">성남·수원</text>
+            <text x="400" y="150" text-anchor="middle" font-size="9" fill="#2A4A70" font-family="sans-serif">남양주</text>
+          </svg>
+          <div class="map-legend">
+            <div class="legend-item"><span class="legend-dot" style="background:var(--red)"></span>긴급 (30일 내)</div>
+            <div class="legend-item"><span class="legend-dot" style="background:var(--orange)"></span>관심 (3개월 내)</div>
+            <div class="legend-item"><span class="legend-dot" style="background:var(--green)"></span>예비 (6개월 내)</div>
+          </div>
+        </div>
+      </div>
+      <div class="map-side rv-r">
+        <div class="ms-header">지역별 긴급 단지</div>
+        <div class="ms-body">
+          <div class="ms-row"><div><div class="ms-name">서초구</div><div class="ms-dist">서울</div></div><div class="ms-pct hi">12건</div></div>
+          <div class="ms-row"><div><div class="ms-name">강남구</div><div class="ms-dist">서울</div></div><div class="ms-pct hi">9건</div></div>
+          <div class="ms-row"><div><div class="ms-name">영통구</div><div class="ms-dist">수원시</div></div><div class="ms-pct md">7건</div></div>
+          <div class="ms-row"><div><div class="ms-name">분당구</div><div class="ms-dist">성남시</div></div><div class="ms-pct md">6건</div></div>
+          <div class="ms-row"><div><div class="ms-name">일산동구</div><div class="ms-dist">고양시</div></div><div class="ms-pct lo">5건</div></div>
+          <div class="ms-row"><div><div class="ms-name">동안구</div><div class="ms-dist">안양시</div></div><div class="ms-pct lo">4건</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 영업 타임라인 -->
+<section id="timeline">
+  <div class="w">
+    <div class="rv">
+      <div class="tag">영업 타이밍</div>
+      <h2 class="h2">공고가 뜨는 데는<br>이유가 있습니다</h2>
+      <p class="sub">준공 연도부터 K-apt 공고까지. 발주Up은 그 흐름을 먼저 읽습니다.</p>
+    </div>
+    <div class="tl-wrap rv">
+      <div class="tl-track">
+        <div class="tl-step active">
+          <div class="tl-node"></div>
+          <div class="tl-label">준공<br>(10~15년 전)</div>
+        </div>
+        <div class="tl-step active">
+          <div class="tl-node"></div>
+          <div class="tl-label">방수층<br>열화 시작</div>
+        </div>
+        <div class="tl-step warn">
+          <div class="tl-node"></div>
+          <div class="tl-label">누수 민원<br>증가</div>
+        </div>
+        <div class="tl-step warn">
+          <div class="tl-node"></div>
+          <div class="tl-label">장기수선<br>계획 검토</div>
+        </div>
+        <div class="tl-step early">
+          <div class="tl-node"></div>
+          <div class="tl-label">
+            <div class="tl-arrow-label">발주Up 알림</div>
+            입찰 준비<br>시작
+          </div>
+        </div>
+        <div class="tl-step active">
+          <div class="tl-node"></div>
+          <div class="tl-label">K-apt<br>공고 등록</div>
+        </div>
+        <div class="tl-step active">
+          <div class="tl-node"></div>
+          <div class="tl-label">입찰<br>마감</div>
+        </div>
+      </div>
+    </div>
+    <div class="tl-vs rv">
+      <div class="tl-vs-box tl-vs-kapt">
+        <div class="tl-vs-label">K-apt</div>
+        <div class="tl-vs-text">공고가 떴을 때 확인</div>
+      </div>
+      <div class="tl-vs-box tl-vs-baljuup">
+        <div class="tl-vs-label">발주Up</div>
+        <div class="tl-vs-text">공고 3~6개월 전에 파악</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 카카오톡 시나리오 -->
+<section id="kakao">
+  <div class="w">
+    <div class="kakao-wrap">
+      <div class="rv-l">
+        <div class="kakao-phone">
+          <div class="kp-header">
+            <div class="kp-avatar">소</div>
+            <div>
+              <div class="kp-name">방배 A단지 관리소장</div>
+              <div class="kp-status">방수 공사 담당</div>
+            </div>
+          </div>
+          <div class="kp-body" style="overflow:hidden">
+            <div class="bubble recv">
+              <div class="bubble-text">여보세요, 저희 단지 옥상 방수 쪽으로 이번에 검토 중인데요.</div>
+              <div class="bubble-time">오전 10:14</div>
+            </div>
+            <div style="clear:both;height:8px"></div>
+            <div class="bubble sent">
+              <div class="bubble-text">네 소장님, 저 발주Up 보고 미리 연락드렸는데 마침 잘됐네요. 제안서 한번 드릴까요?</div>
+              <div class="bubble-time">오전 10:16</div>
+            </div>
+            <div style="clear:both;height:8px"></div>
+            <div class="bubble recv">
+              <div class="bubble-text">어떻게 아셨어요? 아직 공고도 안 냈는데.</div>
+              <div class="bubble-time">오전 10:17</div>
+            </div>
+            <div style="clear:both;height:8px"></div>
+            <div class="bubble sent">
+              <div class="bubble-text">저희가 먼저 파악하고 연락드리는 서비스 쓰거든요. 내일 오전에 방문 가능할까요?</div>
+              <div class="bubble-time">오전 10:19</div>
+            </div>
+            <div style="clear:both"></div>
+          </div>
+          <div class="kp-foot">발주Up 알림 수신 후 <span>당일 연락 — 수주</span></div>
+        </div>
+      </div>
+      <div class="kakao-text rv-r">
+        <h3 class="kt-title">공고 전에 전화하면<br>경쟁자가 없습니다</h3>
+        <p class="kt-desc">공고 뜬 다음에 전화하면<br>이미 3~5곳이 동시에 전화하고 있습니다.</p>
+        <ul class="kt-points">
+          <li>발주Up이 단지를 먼저 파악합니다</li>
+          <li>발주Up이 관리소 연락처를 제공합니다</li>
+          <li>발주Up이 제안서를 1분 내 완성합니다</li>
+          <li>먼저 만난 쪽이 수주할 확률이 높습니다</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 검색 유도 -->
+<section id="search-cta">
+  <div class="rv">
+    <h2 class="sc-h">우리 지역 단지,<br>지금 몇 건입니까</h2>
+    <p class="sc-sub">발주 임박 단지를 지금 바로 확인하세요</p>
+    <div class="sc-box">
+      <div class="sc-input-wrap">
+        <input class="sc-input" type="text" placeholder="지역명 또는 아파트명 검색...">
+        <button class="sc-input-btn">확인</button>
+      </div>
+      <div class="sc-chips">
+        <span class="sc-chip">서초구</span>
+        <span class="sc-chip">강남구</span>
+        <span class="sc-chip">수원 영통</span>
+        <span class="sc-chip">분당</span>
+        <span class="sc-chip">일산</span>
+        <span class="sc-chip">이번달 발주 임박</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- VS 비교 -->
+<section id="vs">
+  <div class="w">
+    <div class="rv" style="text-align:center;max-width:440px;margin:0 auto 44px">
+      <div class="tag">핵심 차이</div>
+      <h2 class="h2">딱 한 줄로<br>비교합니다</h2>
+    </div>
+    <div class="vs-simple">
+      <div class="vs-box vs-kapt rv-l">
+        <div class="vs-lbl">K-apt</div>
+        <div class="vs-row"><span class="vs-icon">X</span>공고가 올라오면 확인</div>
+        <div class="vs-row"><span class="vs-icon">X</span>경쟁사와 동시에 알게 됨</div>
+        <div class="vs-row"><span class="vs-icon">X</span>입찰까지 14일 남음</div>
+        <div class="vs-row"><span class="vs-icon">X</span>제안서 직접 만들어야 함</div>
+        <div class="vs-row"><span class="vs-icon">X</span>누가 담당인지 모름</div>
+      </div>
+      <div class="vs-mid">
+        <span class="vs-vs">VS</span>
+        공고 전/후
+      </div>
+      <div class="vs-box vs-baljuup rv-r">
+        <div class="vs-lbl">발주Up</div>
+        <div class="vs-row"><span class="vs-icon">V</span>공고 3~6개월 전에 파악</div>
+        <div class="vs-row"><span class="vs-icon">V</span>경쟁사보다 먼저 연락</div>
+        <div class="vs-row"><span class="vs-icon">V</span>여유 있게 관계 형성</div>
+        <div class="vs-row"><span class="vs-icon">V</span>클릭 한 번 — 제안서 완성</div>
+        <div class="vs-row"><span class="vs-icon">V</span>관리소 연락처 제공</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PRICING -->
+<section id="pricing">
+  <div class="w">
+    <div class="rv" style="text-align:center;max-width:480px;margin:0 auto 44px">
+      <div class="tag">요금제</div>
+      <h2 class="h2">수주 한 건이면<br>연간 요금이 해결됩니다</h2>
+      <p class="sub" style="margin:0 auto">14일 무료 체험 후 결제가 시작됩니다.</p>
+    </div>
+    <div class="pr-grid">
+      <div class="pr-plan rv d1">
+        <div class="pr-name">스타터</div>
+        <div class="pr-price">55,000<span>원/월</span></div>
+        <div class="pr-desc">개인 영업담당자</div>
+        <div class="pr-hr"></div>
+        <ul class="pr-ul">
+          <li>서울·경기 발주 예측 리스트</li>
+          <li>입찰공고·수의계약 자동 수집</li>
+          <li>카카오 알림톡 매일 발송</li>
+          <li>PDF 제안서 월 20건</li>
+          <li>관리사무소 연락처 제공</li>
+        </ul>
+        <a href="#" class="pr-btn pr-btn-out">14일 무료 시작</a>
+      </div>
+      <div class="pr-plan hot rv d2">
+        <span class="pr-hot-badge">가장 많이 선택</span>
+        <div class="pr-name">프로</div>
+        <div class="pr-price">110,000<span>원/월</span></div>
+        <div class="pr-desc">팀 단위 영업 관리</div>
+        <div class="pr-hr"></div>
+        <ul class="pr-ul">
+          <li>스타터 전체 포함</li>
+          <li>PDF 제안서 무제한</li>
+          <li>이메일 자동 발송·열람 추적</li>
+          <li>영업 이력 팀 공유 (CRM)</li>
+          <li>리마인더 자동 알림</li>
+          <li>팀원 계정 3개 포함</li>
+        </ul>
+        <a href="#" class="pr-btn pr-btn-fill">14일 무료 시작</a>
+      </div>
+      <div class="pr-plan rv d3">
+        <div class="pr-name">엔터프라이즈</div>
+        <div class="pr-price" style="font-size:26px">별도 협의</div>
+        <div class="pr-desc">대형 시공사·다지점</div>
+        <div class="pr-hr"></div>
+        <ul class="pr-ul">
+          <li>프로 전체 포함</li>
+          <li>전국 커버리지 확장</li>
+          <li>전담 분석 리포트 제공</li>
+          <li>무제한 팀원 계정</li>
+        </ul>
+        <a href="#" class="pr-btn pr-btn-out">도입 문의</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FINAL CTA -->
+<section id="final-cta">
+  <div class="fc-inner">
+    <div class="rv">
+      <div class="tag">지금 시작</div>
+      <h2 class="fc-h">오늘 가입하면<br>내일 아침 단지 목록이 옵니다</h2>
+      <p class="fc-sub">경쟁사보다 먼저 전화할 단지가 매일 아침 정리됩니다.</p>
+      <div class="fc-btns">
+        <a class="btn-main" href="#pricing" style="font-size:17px;padding:16px 34px">우리 지역 단지 확인하기</a>
+        <a class="btn-sub" href="mailto:able821029@gmail.com">도입 문의</a>
+      </div>
+      <p class="fc-note">14일 무료 · 신용카드 불필요 · 언제든지 취소</p>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="foot-i">
+    <div>
+      <div class="foot-logo">발주<b>Up</b></div>
+      <div class="foot-desc">수도권 공동주택 방수 공사 발주 시점 예측 서비스. 공고 전 3~6개월, 먼저 연락할 단지를 알려드립니다.</div>
+    </div>
+    <div class="foot-links">
+      <a href="#">이용약관</a>
+      <a href="#">개인정보처리방침</a>
+      <a href="mailto:able821029@gmail.com">문의</a>
+    </div>
+  </div>
+  <div class="foot-legal">
+    발주Up은 국토교통부 공개 데이터를 기반으로 분석 결과를 제공하며, 실제 발주 여부를 보장하지 않습니다.
+  </div>
+</footer>
+
+<script>
+// NAV 스크롤
+window.addEventListener('scroll',()=>{
+  document.getElementById('mn').classList.toggle('sc',scrollY>10);
+},{passive:true});
+
+// 히어로 카운터
+function hCnt(id,end,delay){
+  setTimeout(()=>{
+    const el=document.getElementById(id);if(!el)return;
+    let n=0,s=Math.ceil(end/25);
+    const t=setInterval(()=>{n=Math.min(n+s,end);el.textContent=n;if(n>=end)clearInterval(t);},55);
+  },delay);
+}
+hCnt('h-cnt1',9,1100);hCnt('h-cnt2',18,1300);hCnt('h-cnt3',127,1500);
+
+// 진입 트리거
+const io=new IntersectionObserver(es=>{
+  es.forEach(e=>{if(!e.isIntersecting)return;e.target.classList.add('on');io.unobserve(e.target);});
+},{threshold:.1});
+document.querySelectorAll('.rv,.rv-l,.rv-r').forEach(el=>io.observe(el));
+
+// urgency 바 애니메이션
+const bObs=new IntersectionObserver(es=>{
+  es.forEach(e=>{
+    if(!e.isIntersecting)return;
+    e.target.querySelectorAll('.urgency-fill').forEach(f=>{
+      const w=f.style.getPropertyValue('--w');
+      f.style.transition='width 1.2s ease';f.style.width=w;
+    });
+    bObs.unobserve(e.target);
+  });
+},{threshold:.3});
+document.querySelectorAll('.panel').forEach(el=>bObs.observe(el));
+
+// KPI 카운터 (대시보드)
+const cio=new IntersectionObserver(es=>{
+  es.forEach(e=>{
+    if(!e.isIntersecting)return;
+    const el=e.target,end=parseInt(el.dataset.target),suf=el.dataset.suffix??'';
+    let cur=0;const steps=60,ms=22,inc=end/steps;
+    cio.unobserve(el);
+    const t=setInterval(()=>{
+      cur=Math.min(cur+inc,end);
+      const v=cur>=end?end:Math.floor(cur);
+      el.textContent=v.toLocaleString('ko-KR')+suf;
+      if(cur>=end)clearInterval(t);
+    },ms);
+  });
+},{threshold:.5});
+document.querySelectorAll('[data-target]').forEach(el=>cio.observe(el));
+
+// 필터 버튼 토글
+document.querySelectorAll('.filter-btn').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+  });
+});
+
+// 스무스 스크롤
+document.querySelectorAll('a[href^="#"]').forEach(a=>{
+  a.addEventListener('click',e=>{
+    const id=a.getAttribute('href').slice(1),t=document.getElementById(id);
+    if(!t)return;e.preventDefault();
+    window.scrollTo({top:t.getBoundingClientRect().top+scrollY-60,behavior:'smooth'});
+  });
+});
+</script>
+</body>
+</html>

@@ -122,6 +122,65 @@ export async function getBillingKeyInfo(billingKey: string): Promise<TossResult<
 }
 
 // ============================================================
+// 4) 결제 취소 / 환불 (전액 또는 부분)
+//
+// Toss 정책:
+//   - paymentKey 가 필요 (orderId X)
+//   - cancelAmount 미지정 시 전액 취소
+//   - 7일 이내 카드 결제는 카드사 승인 취소, 이후는 매입 취소로 처리됨 (Toss 가 자동 분기)
+//   - 가상계좌 환불은 refundReceiveAccount 필요 — 본 함수에서는 카드 결제만 지원
+// ============================================================
+export interface CancelPaymentInput {
+  cancelReason: string;          // 환불 사유 (1~200자, 필수)
+  cancelAmount?: number;         // 부분취소 금액. 미지정 시 전액
+  taxFreeAmount?: number;        // 부분취소 시 면세 금액 (필요 시)
+}
+
+export interface CancelPaymentResponse {
+  paymentKey: string;
+  status: string;                // 'CANCELED' | 'PARTIAL_CANCELED'
+  cancels: Array<{
+    cancelAmount: number;
+    cancelReason: string;
+    canceledAt: string;
+    transactionKey: string;
+    receiptKey?: string;
+  }>;
+  totalAmount: number;
+  balanceAmount: number;
+  approvedAt: string;
+}
+
+export async function cancelPayment(
+  paymentKey: string,
+  input: CancelPaymentInput,
+): Promise<TossResult<CancelPaymentResponse>> {
+  // 사유는 Toss 가 1~200자 검증 — 클라이언트에서 안전하게 한 번 더
+  const cancelReason = String(input.cancelReason ?? '').trim().slice(0, 200);
+  if (!cancelReason) {
+    return { ok: false, status: 400, code: 'INVALID_REASON', message: '취소 사유가 필요합니다' };
+  }
+  return callToss<CancelPaymentResponse>('POST', `/v1/payments/${paymentKey}/cancel`, {
+    cancelReason,
+    ...(input.cancelAmount != null ? { cancelAmount: input.cancelAmount } : {}),
+    ...(input.taxFreeAmount != null ? { taxFreeAmount: input.taxFreeAmount } : {}),
+  });
+}
+
+// ============================================================
+// 5) 결제 단건 조회 (영수증 URL / 상태 확인용 — webhook 검증 등에 사용)
+// ============================================================
+export interface PaymentLookup extends PaymentResponse {
+  receipt?: { url: string };
+  balanceAmount: number;
+  cancels?: CancelPaymentResponse['cancels'];
+}
+
+export async function getPayment(paymentKey: string): Promise<TossResult<PaymentLookup>> {
+  return callToss<PaymentLookup>('GET', `/v1/payments/${paymentKey}`);
+}
+
+// ============================================================
 // 헬퍼: orderId 생성 (월별 유니크)
 // ============================================================
 export function buildMonthlyOrderId(userId: string, date = new Date()): string {

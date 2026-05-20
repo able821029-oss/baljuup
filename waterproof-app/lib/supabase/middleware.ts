@@ -33,6 +33,10 @@ const PUBLIC_PATHS = [
   '/reset-password',   // 메일 링크 클릭 후 새 비밀번호 입력 (세션은 콜백에서 자동 생성)
   '/auth',             // /auth/callback 등 OAuth 콜백
   '/api/public',       // 공개 API (있다면)
+  '/api/toss',         // Toss webhook (서명 검증으로 보호)
+  '/terms',            // 이용약관 — 로그인 전에도 접근 가능해야 가입 동의 흐름 성립
+  '/privacy',          // 개인정보처리방침
+  '/refund',           // 환불·청약철회 정책
 ];
 
 function isPublicPath(pathname: string): boolean {
