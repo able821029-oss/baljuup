@@ -56,7 +56,7 @@ jobs:
           cache-dependency-path: waterproof-app/package-lock.json
 
       - name: 번들 크기 측정 + 비교
-        uses: preactjs/compressed-size-action@v2
+        uses: preactjs/compressed-size-action@v3
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
           # cwd 가 root 기준이라 모노레포 구조 명시
